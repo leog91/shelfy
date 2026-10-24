@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Shelfy
 
-## Getting Started
+Personal app for saved links, notes, videos and shopping items.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
+- Quick capture, tags, search, filters and reading/watching/shopping queues.
+- Archived and Deleted folders; restore items or separately confirm permanent deletion.
+- JSON/bookmark imports and JSON exports, optional link metadata and revisit dates.
+- Automatic, light and dark themes; keyboard/focus tooltips and touch action labels.
+- Sign-in required. Turso stores items and Better Auth users, hashed passwords and sessions. No browser-local library.
+
+## Run locally
+
+Requires Bun (see `package.json`) and a Turso database.
+
+```sh
+bun install --frozen-lockfile
+bun run setup
+```
+
+Fill `.env.local` using [`.env.example`](.env.example). Setup generates an auth secret without overwriting existing settings. Keep secrets server-only; never commit `.env.local`.
+
+Apply migrations intentionally against the configured database, then start:
+
+```sh
+CONFIRM_REMOTE_MIGRATION=true bun run db:migrate
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [localhost:3000](http://localhost:3000) and create an account. To close registration afterward, set `ALLOW_SIGN_UP=false` and restart. Production requires an HTTPS `BETTER_AUTH_URL`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Remaining work
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Change-password screen and email verification/password recovery.
+- HTTPS hosting, backup/restore verification and real-phone sharing tests.
+- Broader screen-reader and large-library testing; the full library currently loads at once.
 
-## Learn More
+Revisit dates do not send notifications. Clipsy is not connected. AI, price monitoring and offline sync are not implemented.
 
-To learn more about Next.js, take a look at the following resources:
+## Development
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Next.js App Router, React, TypeScript, Tailwind, Drizzle/libSQL and Better Auth.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See [development notes](docs/DEVELOPMENT.md) for checks, architecture and data safety, and [agent rules](AGENTS.md) for coding constraints. Keep documentation limited to these three files; no running session logs or duplicate roadmaps.

@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1792784127892,
+      "tag": "0000_happy_silver_centurion",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1792785015744,
+      "tag": "0001_true_thunderbolt",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792803047866,
+      "tag": "0002_parallel_arclight",
+      "breakpoints": true
+    }
+  ]
+}
