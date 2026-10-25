@@ -11,6 +11,7 @@ export class RemoteItemRepository {
   private snapshot: Snapshot = initialSnapshot;
   private listeners = new Set<() => void>();
   private loading?: Promise<void>;
+  private lastLoadedAt?: number;
   private generation = 0;
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
@@ -53,15 +54,24 @@ export class RemoteItemRepository {
     }
     return response;
   }
-  load = (): Promise<void> => {
+  load = (maxAge = 0): Promise<void> => {
     if (this.loading) return this.loading;
+    if (
+      maxAge > 0 &&
+      !this.snapshot.error &&
+      this.lastLoadedAt !== undefined &&
+      Date.now() - this.lastLoadedAt < maxAge
+    )
+      return Promise.resolve();
     const generation = ++this.generation;
     this.loading = (async () => {
       try {
         const response = await this.request("");
         const items = parseLibrary(await response.text());
-        if (generation === this.generation)
+        if (generation === this.generation) {
+          this.lastLoadedAt = Date.now();
           this.publish({ items, ready: true });
+        }
       } catch (error) {
         if (generation === this.generation)
           this.publish({

@@ -26,6 +26,7 @@ test("Clipsy cache reuses counts for six hours; refresh, expiry and reload fetch
   const panel = page.getByRole("region", { name: "Clipsy", exact: true });
   await expect(panel).toContainText("5 videos");
   await expect(panel).toContainText("cached for up to 6 hours");
+  await expect(panel.locator("time")).toHaveText("just now");
   const timestamp = await panel.locator("time").getAttribute("datetime");
   const navigateBack = async () => {
     await page
@@ -122,8 +123,11 @@ test("Clipsy summary refreshes and recovers without changing the library", async
   page,
 }) => {
   let available = true;
-  await page.route("**/api/clipsy", (route) =>
-    route.fulfill({
+  let requests = 0;
+  await page.clock.install();
+  await page.route("**/api/clipsy", (route) => {
+    requests++;
+    return route.fulfill({
       status: available ? 200 : 503,
       json: available
         ? {
@@ -138,14 +142,21 @@ test("Clipsy summary refreshes and recovers without changing the library", async
             },
           }
         : { error: "Unavailable" },
-    }),
-  );
+    });
+  });
   await page.goto("/");
   const panel = page.getByRole("region", { name: "Clipsy", exact: true });
   await expect(panel).toContainText("5 videos · 3 to watch · 2 watching");
   await expect(
     panel.getByRole("link", { name: "Open Clipsy" }),
   ).toHaveAttribute("href", "https://clipsy.example");
+  await expect(panel.locator("time")).toHaveText("just now");
+  await expect(panel.locator("time")).toHaveAttribute("title", /\d/);
+  await page.clock.fastForward(60_000);
+  await expect(panel.locator("time")).toHaveText("1 minute ago");
+  await page.clock.fastForward(4 * 60_000);
+  await expect(panel.locator("time")).toHaveText("5 minutes ago");
+  expect(requests).toBe(1);
   available = false;
   await panel.getByRole("button", { name: "Refresh Clipsy" }).click();
   await expect(panel).toContainText("Clipsy is unavailable");
@@ -153,6 +164,7 @@ test("Clipsy summary refreshes and recovers without changing the library", async
   available = true;
   await panel.getByRole("button", { name: "Retry Clipsy" }).click();
   await expect(panel).toContainText("5 videos");
+  await expect(panel.locator("time")).toHaveText("just now");
 });
 
 test("unconfigured Clipsy is hidden and its API is private", async ({

@@ -4,6 +4,30 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { useLibrary } from "./library-provider";
 
+function CachedTime({ fetchedAt }: { fetchedAt: number }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const update = () => setNow(Date.now());
+    const timer = window.setInterval(update, 60_000);
+    window.addEventListener("focus", update);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", update);
+    };
+  }, []);
+  const minutes = Math.max(0, Math.floor((now - fetchedAt) / 60_000));
+  return (
+    <time
+      dateTime={new Date(fetchedAt).toISOString()}
+      title={new Date(fetchedAt).toLocaleString()}
+    >
+      {minutes === 0
+        ? "just now"
+        : `${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`}
+    </time>
+  );
+}
+
 export function ClipsySummary() {
   const { account, clipsyCache } = useLibrary();
   const pathname = usePathname();
@@ -61,10 +85,8 @@ export function ClipsySummary() {
             </p>
             <p className="muted">
               Updated{" "}
-              <time dateTime={new Date(data.fetchedAt).toISOString()}>
-                {new Date(data.fetchedAt).toLocaleString()}
-              </time>{" "}
-              · cached for up to 6 hours
+              <CachedTime key={data.fetchedAt} fetchedAt={data.fetchedAt} /> ·
+              cached for up to 6 hours
             </p>
             <a href={data.url} target="_blank" rel="noreferrer">
               Open Clipsy

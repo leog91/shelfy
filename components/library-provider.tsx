@@ -74,10 +74,10 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!state.sessionReady || state.sessionError || !state.account) return;
     const reload = () => {
-      if (!document.hidden) void state.repository.load();
+      if (!document.hidden) void state.repository.load(60_000);
     };
     window.addEventListener("focus", reload);
-    const timer = window.setInterval(reload, 30000);
+    const timer = window.setInterval(reload, 5 * 60_000);
     return () => {
       window.removeEventListener("focus", reload);
       window.clearInterval(timer);

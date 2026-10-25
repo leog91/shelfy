@@ -1,5 +1,51 @@
 import { expect, test } from "./fixtures";
 
+test("navigation and recent focus reuse items; polling waits five minutes", async ({
+  page,
+}) => {
+  let loads = 0;
+  page.on("request", (request) => {
+    if (
+      new URL(request.url()).pathname === "/api/items" &&
+      request.method() === "GET"
+    )
+      loads++;
+  });
+  await page.clock.install();
+  await page.goto("/inbox");
+  await expect(
+    page.getByRole("heading", { name: "No items yet.", exact: true }),
+  ).toBeVisible();
+  expect(loads).toBe(1);
+  await page
+    .getByRole("navigation")
+    .getByRole("link", { name: "To read", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "No items yet.", exact: true }),
+  ).toBeVisible();
+  await page.clock.fastForward(30_000);
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  expect(loads).toBe(1);
+
+  await page.clock.fastForward(31_000);
+  const focused = page.waitForResponse(
+    (response) => new URL(response.url()).pathname === "/api/items",
+  );
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await focused;
+  expect(loads).toBe(2);
+  await page.clock.fastForward(60_000);
+  expect(loads).toBe(2);
+
+  const polled = page.waitForResponse(
+    (response) => new URL(response.url()).pathname === "/api/items",
+  );
+  await page.clock.fastForward(180_000);
+  await polled;
+  expect(loads).toBe(3);
+});
+
 test("article capture, triage, editing, done, search and refresh", async ({
   page,
 }) => {

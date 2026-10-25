@@ -2,8 +2,46 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createItem } from "./model";
 import { RemoteItemRepository } from "./remote-repository";
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+});
 describe("account repository lifecycle", () => {
+  it("skips fresh automatic loads but allows expiry and forced refresh", async () => {
+    vi.useFakeTimers();
+    const fetch = vi
+      .fn()
+      .mockImplementation(async () => Response.json({ version: 3, items: [] }));
+    vi.stubGlobal("fetch", fetch);
+    const repository = new RemoteItemRepository("alice");
+    await repository.load(60_000);
+    await repository.load(60_000);
+    vi.advanceTimersByTime(59_999);
+    await repository.load(60_000);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(1);
+    await repository.load(60_000);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    await repository.load();
+    expect(fetch).toHaveBeenCalledTimes(3);
+  });
+  it("does not suppress retry after a failed refresh", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ version: 3, items: [] }))
+      .mockResolvedValueOnce(
+        Response.json({ error: "Unavailable" }, { status: 503 }),
+      )
+      .mockResolvedValueOnce(Response.json({ version: 3, items: [] }));
+    vi.stubGlobal("fetch", fetch);
+    const repository = new RemoteItemRepository("alice");
+    await repository.load();
+    await repository.load();
+    expect(repository.getSnapshot().error).toBe("Unavailable");
+    await repository.load(60_000);
+    expect(fetch).toHaveBeenCalledTimes(3);
+    expect(repository.getSnapshot().error).toBeUndefined();
+  });
   it("pins workspace identity, validates responses and retains state on failed writes", async () => {
     const item = createItem("Keep this note");
     const fetch = vi
