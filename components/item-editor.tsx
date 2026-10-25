@@ -14,6 +14,7 @@ import {
 import { errorMessage, useLibrary } from "./library-provider";
 import { MetadataPreview } from "./metadata-preview";
 import { fromLocalDateTime, toLocalDateTime } from "@/lib/items/reminders";
+import { displayTitle } from "@/lib/items/link-title";
 
 export function ItemDetail({ id }: { id: string }) {
   const { items, ready, error } = useLibrary();
@@ -76,7 +77,7 @@ function ItemEditor({ item }: { item: Item }) {
         {item.deletedAt ? "Back to Deleted" : "Back to library"}
       </Link>
       <header className="page-heading">
-        <h1>{item.title}</h1>
+        <h1>{displayTitle(item)}</h1>
         {item.deletedAt && (
           <p>In Deleted. Restore this item before editing it.</p>
         )}

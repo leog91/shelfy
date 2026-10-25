@@ -60,9 +60,7 @@ export function MetadataPreview({
       </button>
       {preview && (
         <div className="import-preview">
-          <p>
-            Suggestions only. Apply a field to your draft, then Save changes.
-          </p>
+          <p>Suggestions only. Apply a field to your draft, then save.</p>
           {preview.title && (
             <>
               <p>{preview.title}</p>

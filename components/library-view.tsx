@@ -15,6 +15,7 @@ import { ItemList } from "./item-list";
 import { Portability } from "./portability";
 import { LibraryFilters } from "./library-filters";
 import { ClipsySummary } from "./clipsy-summary";
+import { displayTitle } from "@/lib/items/link-title";
 
 const emptyTitles: Record<View, string> = {
   dashboard: "No recent items.",
@@ -136,7 +137,9 @@ export function LibraryView({ view }: { view: View }) {
                   <ul className="reminder-summary">
                     {upcoming.map((item) => (
                       <li key={item.id}>
-                        <Link href={`/items/${item.id}`}>{item.title}</Link>
+                        <Link href={`/items/${item.id}`}>
+                          {displayTitle(item)}
+                        </Link>
                         <time dateTime={item.reminderAt}>
                           {item.reminderAt?.replace("T", " ").slice(0, 16)} UTC
                         </time>

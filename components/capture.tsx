@@ -1,7 +1,9 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
-import { intents, Item } from "@/lib/items/model";
+import { intents, Item, safeUrl } from "@/lib/items/model";
+import { linkTitle, displayTitle } from "@/lib/items/link-title";
+import { MetadataPreview } from "./metadata-preview";
 import { errorMessage, useLibrary } from "./library-provider";
 import Link from "next/link";
 
@@ -16,6 +18,13 @@ export function Capture({ initialText = "" }: { initialText?: string }) {
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
   const input = useRef<HTMLTextAreaElement>(null);
+  const [details, setDetails] = useState<{
+    url: string;
+    title?: string;
+    description?: string;
+  } | null>(null);
+  const url =
+    !/\s/.test(text.trim()) && safeUrl(text.trim()) ? text.trim() : "";
   const duplicate =
     text.trim() &&
     items.find(
@@ -34,9 +43,13 @@ export function Capture({ initialText = "" }: { initialText?: string }) {
       const item = await repository.create(
         text,
         intent ? (intent as Item["intent"]) : undefined,
+        details?.url === url
+          ? { title: details.title, description: details.description }
+          : undefined,
       );
       setText("");
       setIntent("");
+      setDetails(null);
       setMessage(`Saved “${item.title}” to Inbox.`);
       input.current?.focus();
     } catch (e) {
@@ -64,7 +77,10 @@ export function Capture({ initialText = "" }: { initialText?: string }) {
           readOnly={saving}
           placeholder="Paste a URL or write a note"
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            setText(e.target.value);
+            setDetails(null);
+          }}
           rows={2}
           required
           maxLength={200000}
@@ -76,6 +92,48 @@ export function Capture({ initialText = "" }: { initialText?: string }) {
             if (e.key === "Escape") e.currentTarget.blur();
           }}
         />
+        {url && (
+          <details key={url} className="capture-details">
+            <summary>Link details · {details?.title || linkTitle(url)}</summary>
+            <fieldset disabled={saving}>
+              <label>
+                Title
+                <input
+                  value={details?.title ?? linkTitle(url)}
+                  maxLength={500}
+                  onChange={(e) =>
+                    setDetails((current) => ({
+                      ...current,
+                      url,
+                      title: e.target.value,
+                    }))
+                  }
+                />
+              </label>
+              <label>
+                Description
+                <textarea
+                  value={details?.description ?? ""}
+                  maxLength={10000}
+                  onChange={(e) =>
+                    setDetails((current) => ({
+                      ...current,
+                      url,
+                      description: e.target.value,
+                    }))
+                  }
+                />
+              </label>
+              <MetadataPreview
+                key={url}
+                url={url}
+                onChoose={(field, value) =>
+                  setDetails((current) => ({ ...current, url, [field]: value }))
+                }
+              />
+            </fieldset>
+          </details>
+        )}
         <div className="capture-bottom">
           <label>
             Intent{" "}
@@ -109,7 +167,7 @@ export function Capture({ initialText = "" }: { initialText?: string }) {
         <p className="muted">
           Possibly already saved:{" "}
           <Link href={`/items/${duplicate.id}`} className="duplicate-link">
-            {duplicate.title}
+            {displayTitle(duplicate)}
           </Link>
           . Saving again keeps a separate copy.
         </p>

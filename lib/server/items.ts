@@ -65,10 +65,18 @@ export class ServerItems {
     if (!row) throw new HttpError(404, "Item not found.");
     return fromRow(row);
   }
-  async create(text: string, intent?: Item["intent"]) {
+  async create(
+    text: string,
+    intent?: Item["intent"],
+    details?: Pick<ItemPatch, "title" | "description">,
+  ) {
     let item: Item;
     try {
       item = createItem(text, intent);
+      if (details) {
+        if (!item.url) throw new Error("Link details require a URL.");
+        item = itemSchema.parse({ ...item, ...details });
+      }
     } catch {
       throw new HttpError(
         400,

@@ -27,6 +27,10 @@ const captureSchema = z
   .object({
     text: z.string().min(1).max(200000),
     intent: z.enum(intents).optional(),
+    details: z
+      .object({ title: shape.title.optional(), description: shape.description })
+      .strict()
+      .optional(),
   })
   .strict();
 const deleteSchema = z.object({ expectedUpdatedAt: z.iso.datetime() }).strict();
@@ -135,7 +139,9 @@ export function createItemApi(options: {
       if (path === "" && request.method === "POST") {
         const input = captureSchema.parse(await readJson(request));
         return json(
-          { item: await service.create(input.text, input.intent) },
+          {
+            item: await service.create(input.text, input.intent, input.details),
+          },
           201,
         );
       }

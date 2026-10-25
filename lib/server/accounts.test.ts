@@ -421,6 +421,47 @@ describe("real Better Auth sessions and owner-scoped API", () => {
     ).toBe(200);
     expect((await request(`/${done.id}`, alice)).status).toBe(404);
   });
+  it("validates and persists explicitly chosen capture details atomically", async () => {
+    const before = (await (await request("", alice)).json()).items.length;
+    for (const details of [
+      { title: "" },
+      { description: "x".repeat(10001) },
+      { userId: "bob" },
+    ]) {
+      expect(
+        (
+          await request("", alice, "POST", {
+            text: "https://en.wikipedia.org/wiki/Gone_Is_Gone",
+            details,
+          })
+        ).status,
+      ).toBe(400);
+    }
+    expect(
+      (
+        await request("", alice, "POST", {
+          text: "A note",
+          details: { title: "Not a link" },
+        })
+      ).status,
+    ).toBe(400);
+    expect((await (await request("", alice)).json()).items).toHaveLength(
+      before,
+    );
+    const response = await request("", alice, "POST", {
+      text: "https://en.wikipedia.org/wiki/Gone_Is_Gone",
+      details: { description: "Chosen description" },
+    });
+    expect(response.status).toBe(201);
+    const created = (await response.json()).item;
+    expect(created).toMatchObject({
+      title: "Gone Is Gone",
+      description: "Chosen description",
+    });
+    expect(
+      (await (await request(`/${created.id}`, alice)).json()).item,
+    ).toEqual(created);
+  });
   it("supports actual sign in, sign out, forged cookies and expiration", async () => {
     expect(
       (await request("", "personal-library.session_token=forged")).status,

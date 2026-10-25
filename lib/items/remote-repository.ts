@@ -88,9 +88,13 @@ export class RemoteItemRepository {
     if (!this.snapshot.ready || this.snapshot.error)
       throw new Error("Refresh the account library before saving changes.");
   }
-  async create(text: string, intent?: Item["intent"]) {
+  async create(
+    text: string,
+    intent?: Item["intent"],
+    details?: Pick<ItemPatch, "title" | "description">,
+  ) {
     this.assertReady();
-    const response = await this.request("", "POST", { text, intent });
+    const response = await this.request("", "POST", { text, intent, details });
     const { item } = z
       .object({ item: itemSchema })
       .parse(await response.json());

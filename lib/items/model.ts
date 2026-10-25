@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { detectLinkSite } from "./link-sites";
+import { linkTitle, displayTitle } from "./link-title";
 
 export const types = ["link", "note", "video", "product"] as const;
 export const intents = [
@@ -99,7 +100,6 @@ export function createItem(text: string, intent?: Item["intent"]): Item {
     throw new Error(
       "Use an HTTP(S) URL without credentials, or write a plain note.",
     );
-  const host = isUrl ? new URL(trimmed).hostname : "";
   const site = isUrl ? detectLinkSite(trimmed) : undefined;
   const video = site?.id === "youtube";
   const now = new Date().toISOString();
@@ -108,9 +108,7 @@ export function createItem(text: string, intent?: Item["intent"]): Item {
     type: isUrl ? (video ? "video" : "link") : "note",
     intent: intent ?? (isUrl ? (site?.intent ?? "read") : "none"),
     status: "inbox",
-    title: isUrl
-      ? host.replace(/^www\./, "")
-      : trimmed.split(/\r?\n/)[0].slice(0, 500),
+    title: isUrl ? linkTitle(trimmed) : trimmed.split(/\r?\n/)[0].slice(0, 500),
     ...(isUrl ? { url: trimmed } : { content: text }),
     tags: [],
     source: "web",
@@ -208,7 +206,13 @@ export function selectItems(
     .filter(
       (item) =>
         !query ||
-        [item.title, item.url, item.content, item.description, ...item.tags]
+        [
+          displayTitle(item),
+          item.url,
+          item.content,
+          item.description,
+          ...item.tags,
+        ]
           .filter(Boolean)
           .join(" ")
           .toLocaleLowerCase()
@@ -218,7 +222,7 @@ export function selectItems(
       filters.sort === "reminder"
         ? (a.reminderAt ?? "9999").localeCompare(b.reminderAt ?? "9999")
         : filters.sort === "title"
-          ? a.title.localeCompare(b.title)
+          ? displayTitle(a).localeCompare(displayTitle(b))
           : filters.sort === "oldest"
             ? a.createdAt.localeCompare(b.createdAt)
             : b.createdAt.localeCompare(a.createdAt),

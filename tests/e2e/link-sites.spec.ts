@@ -44,7 +44,7 @@ test("shop detection respects intent overrides and site icons stay local", async
     ["zalando.at", "Zalando"],
     ["blue-tomato.com", "Blue Tomato"],
     ["amazon.co.uk", "Amazon"],
-    ["x.com", "X (Twitter)"],
+    ["Post by @example", "X (Twitter)"],
     ["old.reddit.com", "Reddit"],
   ]) {
     const row = rows.filter({
@@ -69,7 +69,7 @@ test("shop detection respects intent overrides and site icons stay local", async
   ).toContainText("link · reference");
   await expect(
     rows.filter({
-      has: page.getByRole("link", { name: "x.com", exact: true }),
+      has: page.getByRole("link", { name: "Post by @example", exact: true }),
     }),
   ).toContainText("link · read");
   await page

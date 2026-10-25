@@ -8,6 +8,7 @@ import { useState } from "react";
 import { Tooltip, useActionFeedback } from "./tooltip";
 import { detectLinkSite } from "@/lib/items/link-sites";
 import { SiteIcon } from "./site-icon";
+import { displayTitle } from "@/lib/items/link-title";
 
 export function ItemList({
   items,
@@ -69,7 +70,7 @@ export function ItemList({
       await repository.update(item.id, { status }, item.updatedAt);
       setFailure("");
       announce(
-        `${item.title}: ${status === "archived" ? "archived, kept in library" : status === "done" ? "marked as done" : "moved to Later"}.`,
+        `${displayTitle(item)}: ${status === "archived" ? "archived, kept in library" : status === "done" ? "marked as done" : "moved to Later"}.`,
       );
       restoreFocus(previous);
     } catch (e) {
@@ -83,7 +84,7 @@ export function ItemList({
     setBusy(item.id);
     try {
       await repository.restore(item.id, item.updatedAt);
-      announce(`${item.title}: restored.`);
+      announce(`${displayTitle(item)}: restored.`);
       setFailure("");
       restoreFocus(previous);
     } catch (error) {
@@ -145,16 +146,17 @@ export function ItemList({
       <ul className="item-list">
         {items.map((item) => {
           const site = detectLinkSite(item.url);
+          const title = displayTitle(item);
           return (
             <li key={item.id} className="item-row">
               {bulk && (
                 <label
                   className="item-checkbox"
-                  aria-label={`Select: ${item.title}`}
+                  aria-label={`Select: ${title}`}
                 >
                   <input
                     type="checkbox"
-                    aria-label={`Select: ${item.title}`}
+                    aria-label={`Select: ${title}`}
                     checked={selected.has(item.id)}
                     disabled={Boolean(busy)}
                     onChange={(e) => {
@@ -181,8 +183,11 @@ export function ItemList({
               </div>
               <div className="item-info">
                 <Link className="item-title" href={`/items/${item.id}`}>
-                  {item.title}
+                  {title}
                 </Link>
+                {item.description && (
+                  <p className="item-description">{item.description}</p>
+                )}
                 <div className="item-meta">
                   <span>
                     {site && `${site.label} · `}
@@ -223,7 +228,7 @@ export function ItemList({
                       href={item.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      aria-label={`Open original: ${item.title} (new tab)`}
+                      aria-label={`Open original: ${title} (new tab)`}
                     >
                       <ExternalLink size={17} aria-hidden="true" />
                       <span className="touch-action-label" aria-hidden="true">
@@ -238,7 +243,7 @@ export function ItemList({
                       className="icon-button"
                       disabled={busy === item.id}
                       onClick={() => restore(item)}
-                      aria-label={`Restore: ${item.title}`}
+                      aria-label={`Restore: ${title}`}
                     >
                       <Undo2 size={17} aria-hidden="true" />
                       <span className="touch-action-label" aria-hidden="true">
@@ -253,7 +258,7 @@ export function ItemList({
                       className="icon-button"
                       disabled={busy === item.id}
                       onClick={() => change(item, "later")}
-                      aria-label={`Move to later: ${item.title}`}
+                      aria-label={`Move to later: ${title}`}
                     >
                       <ArrowRight size={17} aria-hidden="true" />
                       <span className="touch-action-label" aria-hidden="true">
@@ -268,7 +273,7 @@ export function ItemList({
                       className="icon-button"
                       disabled={busy === item.id}
                       onClick={() => change(item, "done")}
-                      aria-label={`Mark done: ${item.title}`}
+                      aria-label={`Mark done: ${title}`}
                     >
                       <Check size={17} aria-hidden="true" />
                       <span className="touch-action-label" aria-hidden="true">
@@ -283,7 +288,7 @@ export function ItemList({
                       className="icon-button"
                       disabled={busy === item.id}
                       onClick={() => change(item, "archived")}
-                      aria-label={`Archive: ${item.title}`}
+                      aria-label={`Archive: ${title}`}
                     >
                       <Archive size={17} aria-hidden="true" />
                       <span className="touch-action-label" aria-hidden="true">
