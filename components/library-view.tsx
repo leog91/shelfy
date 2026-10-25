@@ -14,6 +14,7 @@ import { Capture } from "./capture";
 import { ItemList } from "./item-list";
 import { Portability } from "./portability";
 import { LibraryFilters } from "./library-filters";
+import { ClipsySummary } from "./clipsy-summary";
 
 const emptyTitles: Record<View, string> = {
   dashboard: "No recent items.",
@@ -107,6 +108,7 @@ export function LibraryView({ view }: { view: View }) {
         )}
       </header>
       {view !== "deleted" && view !== "archived" && <Capture />}
+      {view === "dashboard" && <ClipsySummary />}
       {!ready ? (
         <p role="status" className="loading">
           Loading items…

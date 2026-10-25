@@ -5,6 +5,7 @@ import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 import { errorMessage, useLibrary } from "./library-provider";
 import { CaptureTools } from "./capture-tools";
+import { ClipsyConnection } from "./clipsy-connection";
 
 export function AccountPanel() {
   const { account, repository, ready } = useLibrary();
@@ -67,6 +68,7 @@ export function AccountPanel() {
               </button>
             </div>
           </section>
+          <ClipsyConnection />
         </>
       ) : (
         <section className="account-panel">

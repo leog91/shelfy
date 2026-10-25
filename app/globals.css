@@ -287,6 +287,24 @@ h2 {
   font-size: 14px;
   font-weight: 600;
 }
+.clipsy-summary {
+  margin: 16px 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 13px;
+}
+.clipsy-summary h2 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+.clipsy-summary a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-right: 12px;
+  color: var(--accent);
+}
 .section-heading {
   display: flex;
   align-items: center;

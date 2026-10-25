@@ -36,7 +36,7 @@ Open [localhost:3000](http://localhost:3000) and create an account. To close reg
 - HTTPS hosting, backup/restore verification and real-phone sharing tests.
 - Broader screen-reader and large-library testing; the full library currently loads at once.
 
-Revisit dates do not send notifications. Clipsy is not connected. AI, price monitoring and offline sync are not implemented.
+Revisit dates do not send notifications. Clipsy has an optional read-only summary; see [configuration](docs/DEVELOPMENT.md#clipsy-summary). AI, price monitoring and offline sync are not implemented.
 
 ## Development
 

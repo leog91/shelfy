@@ -80,6 +80,28 @@ export const rateLimit = sqliteTable("rateLimit", {
   lastRequest: integer("last_request").notNull(),
 });
 
+export const clipsyConnection = sqliteTable("clipsy_connection", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  remoteOrigin: text("remote_origin").notNull(),
+  encryptedToken: text("encrypted_token").notNull(),
+  expiresAt: integer("expires_at").notNull(),
+});
+export const clipsyPending = sqliteTable("clipsy_pending", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  remoteOrigin: text("remote_origin").notNull(),
+  sessionId: text("session_id").notNull(),
+  stateHash: text("state_hash").notNull().unique(),
+  encryptedVerifier: text("encrypted_verifier").notNull(),
+  expiresAt: integer("expires_at").notNull(),
+  exchanging: integer("exchanging", { mode: "boolean" })
+    .notNull()
+    .default(false),
+});
+
 // Owner is deliberately separate from portable Item content. Never accept it from a client.
 export const items = sqliteTable(
   "item",
