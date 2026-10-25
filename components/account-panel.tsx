@@ -8,7 +8,7 @@ import { CaptureTools } from "./capture-tools";
 import { ClipsyConnection } from "./clipsy-connection";
 
 export function AccountPanel() {
-  const { account, repository, ready } = useLibrary();
+  const { account, repository, ready, clipsyCache } = useLibrary();
   const [signUp, setSignUp] = useState(false);
   const [failure, setFailure] = useState("");
   const [message, setMessage] = useState("");
@@ -57,6 +57,7 @@ export function AccountPanel() {
                         result.error.message ?? "Could not sign out.",
                       );
                     // Full reload deliberately drops all preserved private route state.
+                    clipsyCache.clear();
                     window.location.reload();
                   } catch (e) {
                     setFailure(errorMessage(e));

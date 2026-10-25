@@ -1,38 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import {
-  clipsySummarySchema,
-  type ClipsySummary as Summary,
-} from "@/lib/clipsy";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { usePathname } from "next/navigation";
 import { useLibrary } from "./library-provider";
 
 export function ClipsySummary() {
-  const { account } = useLibrary();
-  const [data, setData] = useState<{ summary: Summary; url: string } | null>(
-    null,
+  const { account, clipsyCache } = useLibrary();
+  const pathname = usePathname();
+  const data = useSyncExternalStore(
+    clipsyCache.subscribe,
+    () => clipsyCache.getSnapshot(account?.id ?? ""),
+    () => null,
   );
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [attempt, setAttempt] = useState(0);
+  const handledAttempt = useRef(0);
   useEffect(() => {
+    if (pathname !== "/") return;
     const controller = new AbortController();
+    const force = attempt !== handledAttempt.current;
+    handledAttempt.current = attempt;
     async function load() {
       setLoading(true);
       setError(false);
-      setData(null);
       try {
-        const response = await fetch("/api/clipsy", {
-          cache: "no-store",
-          headers: { "x-workspace-id": account?.id ?? "" },
-          signal: controller.signal,
-        });
-        if (!response.ok) throw new Error();
-        const body = await response.json();
-        if (body.connected)
-          setData({
-            summary: clipsySummarySchema.parse(body.summary),
-            url: body.url,
+        if (account)
+          await clipsyCache.load(account.id, {
+            force,
           });
       } catch {
         if (!controller.signal.aborted) setError(true);
@@ -42,7 +37,7 @@ export function ClipsySummary() {
     }
     void load();
     return () => controller.abort();
-  }, [account?.id, attempt]);
+  }, [account, attempt, clipsyCache, pathname]);
   if (!loading && !error && !data) return null;
   return (
     <section className="clipsy-summary" aria-label="Clipsy">
@@ -63,6 +58,13 @@ export function ClipsySummary() {
             <p>
               {data.summary.collections} collections ·{" "}
               {data.summary.subscriptions} subscriptions
+            </p>
+            <p className="muted">
+              Updated{" "}
+              <time dateTime={new Date(data.fetchedAt).toISOString()}>
+                {new Date(data.fetchedAt).toLocaleString()}
+              </time>{" "}
+              · cached for up to 6 hours
             </p>
             <a href={data.url} target="_blank" rel="noreferrer">
               Open Clipsy

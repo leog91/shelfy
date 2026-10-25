@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useLibrary } from "./library-provider";
 
 export function ClipsyConnection() {
-  const { account } = useLibrary();
+  const { account, clipsyCache } = useLibrary();
   const [status, setStatus] = useState<{
     connected: boolean;
     expired: boolean;
@@ -32,6 +32,7 @@ export function ClipsyConnection() {
       .then((body) => {
         if (!controller.signal.aborted) {
           setStatus(body);
+          if (!body.connected || body.expired) clipsyCache.clear();
           setNotice(
             messages[
               new URLSearchParams(window.location.search).get("clipsy") ?? ""
@@ -44,7 +45,7 @@ export function ClipsyConnection() {
           setError("Could not check your Clipsy connection.");
       });
     return () => controller.abort();
-  }, [account?.id, attempt]);
+  }, [account?.id, attempt, clipsyCache]);
 
   async function act(action: "start" | "disconnect") {
     setBusy(true);
@@ -57,6 +58,7 @@ export function ClipsyConnection() {
       });
       if (!response.ok) throw new Error();
       const body = await response.json();
+      clipsyCache.clear();
       if (action === "start") window.location.assign(body.url);
       else {
         setStatus({ connected: false, expired: false });

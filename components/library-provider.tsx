@@ -10,6 +10,7 @@ import {
 import { initialSnapshot } from "@/lib/items/repository";
 import { RemoteItemRepository } from "@/lib/items/remote-repository";
 import { authClient } from "@/lib/auth-client";
+import { ClipsySummaryCache } from "@/lib/clipsy-cache";
 
 type Repository = RemoteItemRepository;
 type Account = { id: string; email: string; name: string };
@@ -18,8 +19,10 @@ const RepositoryContext = createContext<{
   account: Account | null;
   sessionReady: boolean;
   sessionError: string;
+  clipsyCache: ClipsySummaryCache;
 } | null>(null);
 export function LibraryProvider({ children }: { children: React.ReactNode }) {
+  const [clipsyCache] = useState(() => new ClipsySummaryCache());
   const [state, setState] = useState<{
     repository: Repository;
     account: Account | null;
@@ -80,12 +83,17 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
       window.clearInterval(timer);
     };
   }, [state]);
-  return <RepositoryContext value={state}>{children}</RepositoryContext>;
+  return (
+    <RepositoryContext value={{ ...state, clipsyCache }}>
+      {children}
+    </RepositoryContext>
+  );
 }
 export function useLibrary() {
   const context = useContext(RepositoryContext);
   if (!context) throw new Error("LibraryProvider is missing.");
-  const { repository, account, sessionReady, sessionError } = context;
+  const { repository, account, sessionReady, sessionError, clipsyCache } =
+    context;
   const snapshot = useSyncExternalStore(
     repository.subscribe,
     repository.getSnapshot,
@@ -99,6 +107,7 @@ export function useLibrary() {
     error: sessionError || snapshot.error,
     repository,
     account,
+    clipsyCache,
   };
 }
 export function errorMessage(error: unknown) {
