@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { detectLinkSite } from "./link-sites";
 
 export const types = ["link", "note", "video", "product"] as const;
 export const intents = [
@@ -99,17 +100,13 @@ export function createItem(text: string, intent?: Item["intent"]): Item {
       "Use an HTTP(S) URL without credentials, or write a plain note.",
     );
   const host = isUrl ? new URL(trimmed).hostname : "";
-  const video = [
-    "youtube.com",
-    "www.youtube.com",
-    "m.youtube.com",
-    "youtu.be",
-  ].includes(host);
+  const site = isUrl ? detectLinkSite(trimmed) : undefined;
+  const video = site?.id === "youtube";
   const now = new Date().toISOString();
   return itemSchema.parse({
     id: crypto.randomUUID(),
     type: isUrl ? (video ? "video" : "link") : "note",
-    intent: intent ?? (isUrl ? (video ? "watch" : "read") : "none"),
+    intent: intent ?? (isUrl ? (site?.intent ?? "read") : "none"),
     status: "inbox",
     title: isUrl
       ? host.replace(/^www\./, "")

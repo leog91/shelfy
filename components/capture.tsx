@@ -92,8 +92,9 @@ export function Capture({ initialText = "" }: { initialText?: string }) {
             </select>
           </label>
           <span id={intentHelpId} className="sr-only">
-            Automatic: links default to read, YouTube links to watch, and notes
-            to none.
+            Automatic: recognized shops default to buy (Shopping), YouTube links
+            to watch, other links to read, and notes to none. Choosing an intent
+            overrides detection.
           </span>
           <span className="shortcut">⌘ / Ctrl + Enter to save</span>
           <button
