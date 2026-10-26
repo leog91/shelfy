@@ -6,7 +6,11 @@ export default defineConfig({
   use: { baseURL: "http://localhost:3100", trace: "retain-on-failure" },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
-    { name: "mobile", use: { ...devices["Pixel 7"] } },
+    {
+      name: "mobile",
+      grep: /@mobile/,
+      use: { ...devices["Pixel 7"] },
+    },
   ],
   webServer: {
     command: "bun scripts/e2e-server.ts",

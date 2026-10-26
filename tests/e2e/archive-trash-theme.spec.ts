@@ -109,107 +109,113 @@ test("Archived and Deleted navigation, restore, refresh and permanent deletion",
   ).toEqual([]);
 });
 
-test("theme follows system, remembers overrides and remains accessible", async ({
-  page,
-}, testInfo) => {
-  await page.emulateMedia({ colorScheme: "dark" });
-  await page.goto("/");
-  const theme = page.getByRole("combobox", { name: "Theme", exact: true });
-  await expect(theme).toHaveValue("system");
-  await expect(page.locator("body")).toHaveCSS(
-    "background-color",
-    "rgb(24, 28, 26)",
-  );
-  const capture = page.getByRole("textbox", {
-    name: "URL or note",
-    exact: true,
-  });
-  await expect(capture).toBeEditable();
-  await capture.fill("Dark theme note");
-  await page.getByRole("button", { name: "Save to Inbox" }).click();
-  await expect(page.locator(".item-row:visible")).toHaveCount(1);
-  expect(
-    (
-      await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
-        .analyze()
-    ).violations,
-  ).toEqual([]);
-  await theme.selectOption("light");
-  await expect(page.locator("body")).toHaveCSS(
-    "background-color",
-    "rgb(255, 255, 255)",
-  );
-  await theme.selectOption("dark");
-  await page.emulateMedia({ colorScheme: "light" });
-  await page.reload();
-  await expect(theme).toHaveValue("dark");
-  await expect(page.locator("body")).toHaveCSS(
-    "background-color",
-    "rgb(24, 28, 26)",
-  );
-  await page.goto("/archived");
-  expect(
-    (
-      await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
-        .analyze()
-    ).violations,
-  ).toEqual([]);
-  await page.goto("/all");
-  await page
-    .getByRole("link", { name: "Dark theme note", exact: true })
-    .click();
-  await expect(
-    page.getByRole("button", { name: "Save changes", exact: true }),
-  ).toBeVisible();
-  expect(
-    (
-      await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
-        .analyze()
-    ).violations,
-  ).toEqual([]);
-  await page.getByRole("button", { name: "Delete item…", exact: true }).click();
-  await page.screenshot({
-    path: testInfo.outputPath("dark-editor.png"),
-    fullPage: true,
-  });
-  await page
-    .getByRole("button", { name: "Move to Deleted", exact: true })
-    .click();
-  await expect(page).toHaveURL(/\/all$/);
-  await page.goto("/deleted");
-  expect(
-    (
-      await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
-        .analyze()
-    ).violations,
-  ).toEqual([]);
-  await page
-    .getByRole("link", { name: "Dark theme note", exact: true })
-    .click();
-  await expect(
-    page.getByRole("button", { name: "Restore item", exact: true }),
-  ).toBeVisible();
-  expect(
-    (
-      await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
-        .analyze()
-    ).violations,
-  ).toEqual([]);
-  await page.getByRole("button", { name: "Restore item", exact: true }).click();
-  await expect(
-    page.getByRole("button", { name: "Save changes", exact: true }),
-  ).toBeEnabled();
-  await theme.selectOption("system");
-  await expect(page.locator("body")).toHaveCSS(
-    "background-color",
-    "rgb(255, 255, 255)",
-  );
-  expect(
-    await page.evaluate(() => localStorage.getItem("personal-library.items")),
-  ).toBeNull();
-});
+test(
+  "theme follows system, remembers overrides and remains accessible",
+  { tag: "@mobile" },
+  async ({ page }, testInfo) => {
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.goto("/");
+    const theme = page.getByRole("combobox", { name: "Theme", exact: true });
+    await expect(theme).toHaveValue("system");
+    await expect(page.locator("body")).toHaveCSS(
+      "background-color",
+      "rgb(24, 28, 26)",
+    );
+    const capture = page.getByRole("textbox", {
+      name: "URL or note",
+      exact: true,
+    });
+    await expect(capture).toBeEditable();
+    await capture.fill("Dark theme note");
+    await page.getByRole("button", { name: "Save to Inbox" }).click();
+    await expect(page.locator(".item-row:visible")).toHaveCount(1);
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    await theme.selectOption("light");
+    await expect(page.locator("body")).toHaveCSS(
+      "background-color",
+      "rgb(255, 255, 255)",
+    );
+    await theme.selectOption("dark");
+    await page.emulateMedia({ colorScheme: "light" });
+    await page.reload();
+    await expect(theme).toHaveValue("dark");
+    await expect(page.locator("body")).toHaveCSS(
+      "background-color",
+      "rgb(24, 28, 26)",
+    );
+    await page.goto("/archived");
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    await page.goto("/all");
+    await page
+      .getByRole("link", { name: "Dark theme note", exact: true })
+      .click();
+    await expect(
+      page.getByRole("button", { name: "Save changes", exact: true }),
+    ).toBeVisible();
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    await page
+      .getByRole("button", { name: "Delete item…", exact: true })
+      .click();
+    await page.screenshot({
+      path: testInfo.outputPath("dark-editor.png"),
+      fullPage: true,
+    });
+    await page
+      .getByRole("button", { name: "Move to Deleted", exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/all$/);
+    await page.goto("/deleted");
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    await page
+      .getByRole("link", { name: "Dark theme note", exact: true })
+      .click();
+    await expect(
+      page.getByRole("button", { name: "Restore item", exact: true }),
+    ).toBeVisible();
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    await page
+      .getByRole("button", { name: "Restore item", exact: true })
+      .click();
+    await expect(
+      page.getByRole("button", { name: "Save changes", exact: true }),
+    ).toBeEnabled();
+    await theme.selectOption("system");
+    await expect(page.locator("body")).toHaveCSS(
+      "background-color",
+      "rgb(255, 255, 255)",
+    );
+    expect(
+      await page.evaluate(() => localStorage.getItem("personal-library.items")),
+    ).toBeNull();
+  },
+);

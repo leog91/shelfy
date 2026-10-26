@@ -38,6 +38,8 @@ bun run test:e2e
 
 Stop `bun dev` before E2E: Next shares its development lock. E2E uses port 3100, fresh secrets and an isolated SQLite database, never personal Turso data. Fixtures create independent accounts/client rate-limit buckets without disabling production limits. Use visible/scoped locators because Next can retain hidden routes.
 
+E2E runs every test on desktop and only tests tagged `@mobile` on mobile: responsive layout, touch/focus, accessibility, themes, shared capture, imports and the core library journey. Tag new tests when mobile-specific coverage is needed; shared account/data logic runs on desktop. For focused feedback use `bun run test:e2e -- <spec-file> --project=desktop`; keep the default suite for final verification. Avoid running lint while E2E recreates its output directory.
+
 `bun run format` formats sources/docs. `bun run start` serves a production build. `bun run icons:generate` rebuilds the ICO fallback from `app/icon.svg`; keep its Lucide license notice. PWA/home-screen assets are separate.
 
 ## Code map

@@ -46,77 +46,83 @@ test("navigation and recent focus reuse items; polling waits five minutes", asyn
   expect(loads).toBe(3);
 });
 
-test("article capture, triage, editing, done, search and refresh", async ({
-  page,
-}) => {
-  const errors: string[] = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("/");
-  await expect(
-    page.getByRole("heading", {
-      name: "No items yet.",
-    }),
-  ).toBeVisible();
-  await page
-    .getByLabel("URL or note")
-    .fill("https://example.com/technical-article?topic=react");
-  await page.getByRole("button", { name: "Save to Inbox" }).click();
-  await expect(page.getByRole("status")).toContainText("Saved");
-  await page
-    .getByRole("navigation")
-    .getByRole("link", { name: "Inbox", exact: true })
-    .click();
-  await page
-    .getByRole("button", { name: "Move to later: example.com" })
-    .click();
-  await page
-    .getByRole("navigation")
-    .getByRole("link", { name: "To read", exact: true })
-    .click();
-  await expect(
-    page.getByRole("link", { name: "Open original: example.com" }),
-  ).toHaveAttribute(
-    "href",
-    "https://example.com/technical-article?topic=react",
-  );
-  await page.getByRole("link", { name: "example.com", exact: true }).click();
-  await page
-    .getByLabel("Title", { exact: true })
-    .fill("React architecture guide");
-  await page.getByLabel("Tags", { exact: false }).fill("Development, React");
-  await page.getByRole("button", { name: "Save changes", exact: true }).click();
-  await expect(page.getByRole("status")).toHaveText("Changes saved.");
-  await page.getByRole("button", { name: "Mark done", exact: true }).click();
-  await page
-    .getByRole("navigation")
-    .getByRole("link", { name: "To read", exact: true })
-    .click();
-  await expect(
-    page.getByRole("heading", { name: "To read", exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: "React architecture guide", exact: true }),
-  ).toHaveCount(0);
-  await page
-    .getByRole("navigation")
-    .getByRole("link", { name: "All items", exact: true })
-    .click();
-  await page.getByRole("textbox", { name: "Search items" }).fill("Development");
-  await expect(
-    page.getByRole("link", { name: "React architecture guide", exact: true }),
-  ).toBeVisible();
-  await page.reload();
-  await expect(
-    page.getByRole("link", { name: "React architecture guide", exact: true }),
-  ).toBeVisible();
-  await expect(page.locator(".status-done")).toHaveText("done");
-  expect(errors).toEqual([]);
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth,
-    ),
-  ).toBe(true);
-});
+test(
+  "article capture, triage, editing, done, search and refresh",
+  { tag: "@mobile" },
+  async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.goto("/");
+    await expect(
+      page.getByRole("heading", {
+        name: "No items yet.",
+      }),
+    ).toBeVisible();
+    await page
+      .getByLabel("URL or note")
+      .fill("https://example.com/technical-article?topic=react");
+    await page.getByRole("button", { name: "Save to Inbox" }).click();
+    await expect(page.getByRole("status")).toContainText("Saved");
+    await page
+      .getByRole("navigation")
+      .getByRole("link", { name: "Inbox", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Move to later: example.com" })
+      .click();
+    await page
+      .getByRole("navigation")
+      .getByRole("link", { name: "To read", exact: true })
+      .click();
+    await expect(
+      page.getByRole("link", { name: "Open original: example.com" }),
+    ).toHaveAttribute(
+      "href",
+      "https://example.com/technical-article?topic=react",
+    );
+    await page.getByRole("link", { name: "example.com", exact: true }).click();
+    await page
+      .getByLabel("Title", { exact: true })
+      .fill("React architecture guide");
+    await page.getByLabel("Tags", { exact: false }).fill("Development, React");
+    await page
+      .getByRole("button", { name: "Save changes", exact: true })
+      .click();
+    await expect(page.getByRole("status")).toHaveText("Changes saved.");
+    await page.getByRole("button", { name: "Mark done", exact: true }).click();
+    await page
+      .getByRole("navigation")
+      .getByRole("link", { name: "To read", exact: true })
+      .click();
+    await expect(
+      page.getByRole("heading", { name: "To read", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "React architecture guide", exact: true }),
+    ).toHaveCount(0);
+    await page
+      .getByRole("navigation")
+      .getByRole("link", { name: "All items", exact: true })
+      .click();
+    await page
+      .getByRole("textbox", { name: "Search items" })
+      .fill("Development");
+    await expect(
+      page.getByRole("link", { name: "React architecture guide", exact: true }),
+    ).toBeVisible();
+    await page.reload();
+    await expect(
+      page.getByRole("link", { name: "React architecture guide", exact: true }),
+    ).toBeVisible();
+    await expect(page.locator(".status-done")).toHaveText("done");
+    expect(errors).toEqual([]);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  },
+);
 
 test("note, YouTube, product override, archive, portability and confirmed delete", async ({
   page,

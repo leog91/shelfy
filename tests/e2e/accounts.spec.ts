@@ -42,29 +42,31 @@ test("signed-out routes and failed session checks never enable local saving", as
   );
 });
 
-test("shared capture waits for sign-in and retains its draft", async ({
-  page,
-}) => {
-  await page.goto("/capture#text=Shared%20note%20after%20sign-in");
-  await expect(
-    page.getByRole("heading", { name: "Sign in", exact: true }),
-  ).toBeVisible();
-  const response = await page.request.post("/api/auth/sign-up/email", {
-    headers: { Origin: "http://localhost:3100" },
-    data: {
-      name: "Share test",
-      email: `share-${crypto.randomUUID()}@example.test`,
-      password: "test-only-password-123",
-    },
-  });
-  expect(response.ok()).toBe(true);
-  await page.reload();
-  await expect(page.getByRole("textbox", { name: "URL or note" })).toHaveValue(
-    "Shared note after sign-in",
-  );
-  const exported = await page.request.get("/api/items/export");
-  expect((await exported.json()).items).toEqual([]);
-});
+test(
+  "shared capture waits for sign-in and retains its draft",
+  { tag: "@mobile" },
+  async ({ page }) => {
+    await page.goto("/capture#text=Shared%20note%20after%20sign-in");
+    await expect(
+      page.getByRole("heading", { name: "Sign in", exact: true }),
+    ).toBeVisible();
+    const response = await page.request.post("/api/auth/sign-up/email", {
+      headers: { Origin: "http://localhost:3100" },
+      data: {
+        name: "Share test",
+        email: `share-${crypto.randomUUID()}@example.test`,
+        password: "test-only-password-123",
+      },
+    });
+    expect(response.ok()).toBe(true);
+    await page.reload();
+    await expect(
+      page.getByRole("textbox", { name: "URL or note" }),
+    ).toHaveValue("Shared note after sign-in");
+    const exported = await page.request.get("/api/items/export");
+    expect((await exported.json()).items).toEqual([]);
+  },
+);
 
 test("account-only gate, separate device access, conflicts, and logout privacy", async ({
   page,
