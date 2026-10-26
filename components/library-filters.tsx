@@ -83,7 +83,7 @@ export function LibraryFilters({
             </label>
           )}
           <Filter
-            label="Tag"
+            label="Label"
             value={filters.tag}
             options={tags}
             onChange={(value) => onChange("tag", value)}

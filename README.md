@@ -4,7 +4,7 @@ Personal app for saved links, notes, videos and shopping items.
 
 ## Features
 
-- Quick capture, tags, search, filters and reading/watching/shopping queues.
+- Quick capture, multi-label organization, search, filters and reading/watching/shopping queues.
 - Archived and Deleted folders; restore items or separately confirm permanent deletion.
 - JSON/bookmark imports and JSON exports, optional link metadata/keyword tag suggestions and revisit dates.
 - Automatic, light and dark themes; keyboard/focus tooltips and touch action labels.

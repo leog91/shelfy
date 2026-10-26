@@ -90,12 +90,12 @@ export function MetadataPreview({
           )}
           {tags.length > 0 && (
             <>
-              <p>Suggested tags: {tags.join(", ")}</p>
+              <p>Suggested labels: {tags.join(", ")}</p>
               <p className="muted">
                 Keyword-based suggestions, not AI. Review before saving.
               </p>
               <button type="button" onClick={() => onChooseTags(tags)}>
-                Add suggested tags to draft
+                Add suggested labels to draft
               </button>
             </>
           )}

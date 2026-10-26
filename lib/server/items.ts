@@ -9,6 +9,7 @@ import {
   updateItem,
 } from "../items/model";
 import { mergeImport } from "../items/repository";
+import { changeLabels, LabelOperation } from "../items/labels";
 
 export class HttpError extends Error {
   constructor(
@@ -74,7 +75,11 @@ export class ServerItems {
     try {
       item = createItem(text, intent);
       if (details) {
-        if (!item.url) throw new Error("Link details require a URL.");
+        if (
+          !item.url &&
+          (details.title !== undefined || details.description !== undefined)
+        )
+          throw new Error("Link details require a URL.");
         item = itemSchema.parse({ ...item, ...details });
       }
     } catch {
@@ -180,7 +185,23 @@ export class ServerItems {
     selected: { id: string; expectedUpdatedAt: string }[],
     status: Item["status"],
   ) {
-    await this.db.transaction(async (tx) => {
+    await this.bulkEdit(selected, () => ({ status }));
+  }
+  async bulkLabels(
+    selected: { id: string; expectedUpdatedAt: string }[],
+    labels: string[],
+    operation: LabelOperation,
+  ) {
+    return this.bulkEdit(selected, (item) => ({
+      tags: changeLabels(item.tags, labels, operation),
+    }));
+  }
+  private async bulkEdit(
+    selected: { id: string; expectedUpdatedAt: string }[],
+    patch: (item: Item) => ItemPatch,
+  ) {
+    return this.db.transaction(async (tx) => {
+      const updated: Item[] = [];
       for (const token of selected) {
         const [row] = await tx
           .select()
@@ -197,15 +218,30 @@ export class ServerItems {
             409,
             "A selected item changed. Refresh before applying bulk actions.",
           );
-        const item = updateItem(fromRow(row), { status });
+        const existing = fromRow(row);
+        const item = updateItem(existing, patch(existing));
         item.updatedAt = new Date(
           Math.max(Date.now(), Date.parse(row.updatedAt) + 1),
         ).toISOString();
-        await tx
+        const changed = await tx
           .update(items)
           .set(toRow(this.owner, item))
-          .where(and(eq(items.userId, this.owner), eq(items.id, item.id)));
+          .where(
+            and(
+              eq(items.userId, this.owner),
+              eq(items.id, item.id),
+              eq(items.updatedAt, token.expectedUpdatedAt),
+            ),
+          )
+          .returning({ id: items.id });
+        if (!changed.length)
+          throw new HttpError(
+            409,
+            "A selected item changed. Refresh before applying bulk actions.",
+          );
+        updated.push(item);
       }
+      return updated;
     });
   }
 }

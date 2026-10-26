@@ -68,14 +68,14 @@ test("keyword tags stay optional, merge into drafts and persist only on save", a
     .getByLabel("URL or note")
     .fill("https://huggingface.co/blog/ngxson/make-your-own-rag");
   await page.locator(".capture-details > summary").click();
-  const tags = page.getByLabel("Tags", { exact: false });
+  const tags = page.getByRole("textbox", { name: "Labels", exact: false });
   await tags.fill("Projects, ai");
   await page.getByLabel("Title", { exact: true }).fill("My custom title");
   await page
     .getByRole("button", { name: "Fetch optional link details" })
     .click();
   await expect(
-    page.getByText("Suggested tags: AI, RAG, Python, Tutorials", {
+    page.getByText("Suggested labels: AI, RAG, Python, Tutorials", {
       exact: true,
     }),
   ).toBeVisible();
@@ -84,10 +84,10 @@ test("keyword tags stay optional, merge into drafts and persist only on save", a
     "My custom title",
   );
   await page
-    .getByRole("button", { name: "Add suggested tags to draft" })
+    .getByRole("button", { name: "Add suggested labels to draft" })
     .click();
   await page
-    .getByRole("button", { name: "Add suggested tags to draft" })
+    .getByRole("button", { name: "Add suggested labels to draft" })
     .click();
   await expect(tags).toHaveValue("Projects, ai, RAG, Python, Tutorials");
   expect(
@@ -109,25 +109,27 @@ test("keyword tags stay optional, merge into drafts and persist only on save", a
   await page
     .getByRole("link", { name: "Edit: My custom title", exact: true })
     .click();
-  await page.getByLabel("Tags", { exact: false }).fill("Keep, python");
+  await page
+    .getByRole("textbox", { name: "Labels", exact: false })
+    .fill("Keep, python");
   await page
     .getByRole("button", { name: "Fetch optional link details" })
     .click();
   await page
-    .getByRole("button", { name: "Add suggested tags to draft" })
+    .getByRole("button", { name: "Add suggested labels to draft" })
     .click();
-  await expect(page.getByLabel("Tags", { exact: false })).toHaveValue(
-    "Keep, python, AI, RAG, Tutorials",
-  );
+  await expect(
+    page.getByRole("textbox", { name: "Labels", exact: false }),
+  ).toHaveValue("Keep, python, AI, RAG, Tutorials");
   expect(
     (await (await page.request.get("/api/items/export")).json()).items[0].tags,
   ).toEqual(exported[0].tags);
   await page.getByRole("button", { name: "Save changes", exact: true }).click();
   await expect(page.getByRole("status")).toHaveText("Changes saved.");
   await page.reload();
-  await expect(page.getByLabel("Tags", { exact: false })).toHaveValue(
-    "Keep, python, AI, RAG, Tutorials",
-  );
+  await expect(
+    page.getByRole("textbox", { name: "Labels", exact: false }),
+  ).toHaveValue("Keep, python, AI, RAG, Tutorials");
 });
 
 test("legacy domain titles improve in lists without rewriting saved data", async ({

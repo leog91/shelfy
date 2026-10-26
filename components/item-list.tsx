@@ -10,13 +10,16 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
-import { Item } from "@/lib/items/model";
+import { Item, normalizeTags } from "@/lib/items/model";
 import { errorMessage, useLibrary } from "./library-provider";
 import { useState } from "react";
 import { Tooltip, useActionFeedback } from "./tooltip";
 import { detectLinkSite } from "@/lib/items/link-sites";
 import { SiteIcon } from "./site-icon";
 import { displayTitle } from "@/lib/items/link-title";
+import { itemLabels, labelHref, LabelOperation } from "@/lib/items/labels";
+import { LabelPicker } from "./label-picker";
+import { ItemLabelAction } from "./item-label-action";
 
 export function ItemList({
   items,
@@ -25,7 +28,7 @@ export function ItemList({
   items: Item[];
   bulk?: boolean;
 }) {
-  const { repository } = useLibrary();
+  const { repository, items: libraryItems } = useLibrary();
   const announce = useActionFeedback();
   function restoreFocus(previous: Element | null) {
     requestAnimationFrame(() => {
@@ -49,7 +52,34 @@ export function ItemList({
   const [failure, setFailure] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [selected, setSelected] = useState<Map<string, string>>(new Map());
+  const [bulkLabelsDraft, setBulkLabelsDraft] = useState("");
   const selectedItems = items.filter((item) => selected.has(item.id));
+  async function bulkLabels(operation: LabelOperation) {
+    if (busy) return;
+    const previous = document.activeElement;
+    setBusy("bulk");
+    setFailure("");
+    try {
+      await repository.bulkLabels(
+        selectedItems.map((item) => ({
+          id: item.id,
+          expectedUpdatedAt: selected.get(item.id)!,
+        })),
+        normalizeTags(bulkLabelsDraft.split(",")),
+        operation,
+      );
+      setSelected(new Map());
+      setBulkLabelsDraft("");
+      announce(
+        `Labels ${operation === "add" ? "added to" : "removed from"} ${selectedItems.length} items.`,
+      );
+      restoreFocus(previous);
+    } catch (error) {
+      setFailure(errorMessage(error));
+    } finally {
+      setBusy(null);
+    }
+  }
   async function bulkStatus(status: Item["status"]) {
     const previous = document.activeElement;
     setBusy("bulk");
@@ -124,6 +154,7 @@ export function ItemList({
           <label className="checkbox-label">
             <input
               type="checkbox"
+              disabled={Boolean(busy)}
               aria-label="Select visible items (up to 200)"
               checked={
                 items.length > 0 &&
@@ -155,10 +186,50 @@ export function ItemList({
                   Move selected to {status}
                 </button>
               ))}
-              <button onClick={() => setSelected(new Map())}>
+              <button
+                disabled={Boolean(busy)}
+                onClick={() => setSelected(new Map())}
+              >
                 Clear selection
               </button>
             </div>
+          )}
+          {selectedItems.length > 0 && (
+            <details className="bulk-labels">
+              <summary>Label selected items</summary>
+              <p className="muted">
+                Choose labels to add or remove. Other labels stay unchanged.
+              </p>
+              <LabelPicker
+                value={bulkLabelsDraft}
+                onChange={setBulkLabelsDraft}
+                options={itemLabels(libraryItems)}
+                disabled={Boolean(busy)}
+                expanded
+              />
+              <div className="actions">
+                <button
+                  type="button"
+                  disabled={
+                    Boolean(busy) ||
+                    !normalizeTags(bulkLabelsDraft.split(",")).length
+                  }
+                  onClick={() => bulkLabels("add")}
+                >
+                  Add labels to selected
+                </button>
+                <button
+                  type="button"
+                  disabled={
+                    Boolean(busy) ||
+                    !normalizeTags(bulkLabelsDraft.split(",")).length
+                  }
+                  onClick={() => bulkLabels("remove")}
+                >
+                  Remove labels from selected
+                </button>
+              </div>
+            </details>
           )}
         </div>
       )}
@@ -239,7 +310,7 @@ export function ItemList({
                     {item.type} · {item.intent}
                   </span>
                   <time dateTime={item.createdAt}>
-                    {item.createdAt.slice(0, 10)}
+                    Added {item.createdAt.slice(0, 10)}
                   </time>
                   <span>{item.source}</span>
                   {item.reminderAt && (
@@ -252,7 +323,13 @@ export function ItemList({
                 {item.tags.length > 0 && (
                   <div className="tags">
                     {item.tags.map((tag) => (
-                      <span key={tag}>#{tag}</span>
+                      <Link
+                        key={tag}
+                        href={labelHref(tag)}
+                        aria-label={`View label: ${tag}`}
+                      >
+                        {tag}
+                      </Link>
                     ))}
                   </div>
                 )}
@@ -261,11 +338,12 @@ export function ItemList({
                 {item.deletedAt ? "deleted" : item.status}
               </span>
               <div className="row-actions">
+                {!item.deletedAt && <ItemLabelAction item={item} />}
                 <Tooltip
                   label={
                     item.deletedAt
                       ? "View saved details"
-                      : "Edit saved details and tags"
+                      : "Edit saved details and labels"
                   }
                 >
                   <Link

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
+import { itemLabels, labelHref } from "@/lib/items/labels";
 import {
   BookOpen,
   Inbox,
@@ -13,6 +14,7 @@ import {
   CalendarClock,
   Archive,
   Trash2,
+  Tag,
 } from "lucide-react";
 import { useLibrary } from "./library-provider";
 import { Suspense } from "react";
@@ -32,7 +34,39 @@ const navigation = [
 ];
 function ActiveNavigation() {
   const pathname = usePathname();
-  return <Navigation pathname={pathname} />;
+  const label = useSearchParams().get("label") ?? "";
+  const { items, account, ready } = useLibrary();
+  const labels = itemLabels(items);
+  return (
+    <>
+      <Navigation
+        pathname={pathname === "/all" && label ? undefined : pathname}
+      />
+      {account && ready && (
+        <details className="sidebar-labels" open>
+          <summary>Labels</summary>
+          {labels.length ? (
+            <nav aria-label="Labels">
+              {labels.map((name) => (
+                <Link
+                  key={name}
+                  href={labelHref(name)}
+                  aria-current={
+                    pathname === "/all" && label === name ? "page" : undefined
+                  }
+                >
+                  <Tag size={16} aria-hidden="true" />
+                  <span>{name}</span>
+                </Link>
+              ))}
+            </nav>
+          ) : (
+            <p className="muted">Add labels when saving or editing an item.</p>
+          )}
+        </details>
+      )}
+    </>
+  );
 }
 function Navigation({ pathname }: { pathname?: string }) {
   return (

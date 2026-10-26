@@ -50,9 +50,9 @@ test(
     await row
       .getByRole("link", { name: "Edit: Card test", exact: true })
       .click();
-    await expect(page.getByLabel("Tags", { exact: false })).toHaveValue(
-      "Projects",
-    );
+    await expect(
+      page.getByRole("textbox", { name: "Labels", exact: false }),
+    ).toHaveValue("Projects");
     await page
       .getByRole("link", { name: "Back to library", exact: true })
       .click();

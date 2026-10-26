@@ -16,6 +16,8 @@ import { MetadataPreview } from "./metadata-preview";
 import { fromLocalDateTime, toLocalDateTime } from "@/lib/items/reminders";
 import { displayTitle } from "@/lib/items/link-title";
 import { mergeSuggestedTags } from "@/lib/items/tag-suggestions";
+import { LabelPicker } from "./label-picker";
+import { itemLabels } from "@/lib/items/labels";
 
 export function ItemDetail({ id }: { id: string }) {
   const { items, ready, error } = useLibrary();
@@ -33,13 +35,14 @@ export function ItemDetail({ id }: { id: string }) {
   return <ItemEditor key={`${id}-${Boolean(item.deletedAt)}`} item={item} />;
 }
 function ItemEditor({ item }: { item: Item }) {
-  const { repository, account } = useLibrary();
+  const { repository, account, items } = useLibrary();
   const router = useRouter();
   const [failure, setFailure] = useState("");
   const [message, setMessage] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [baseUpdatedAt, setBaseUpdatedAt] = useState(item.updatedAt);
   const [busy, setBusy] = useState(false);
+  const [labelsDraft, setLabelsDraft] = useState(item.tags.join(", "));
   const busyRef = useRef(false);
   const editorRef = useRef<HTMLFormElement>(null);
   async function changeStatus(status: Item["status"]) {
@@ -228,14 +231,12 @@ function ItemEditor({ item }: { item: Item }) {
               maxLength={10000}
             />
           </label>
-          <label>
-            Tags <span className="muted">(comma separated)</span>
-            <input
-              name="tags"
-              defaultValue={item.tags.join(", ")}
-              placeholder="Development, AI, Projects"
-            />
-          </label>
+          <LabelPicker
+            value={labelsDraft}
+            onChange={setLabelsDraft}
+            options={itemLabels(items)}
+            disabled={busy || Boolean(item.deletedAt)}
+          />
           <label>
             Revisit date/time (your local time; optional)
             <input
@@ -298,14 +299,16 @@ function ItemEditor({ item }: { item: Item }) {
           onChooseTags={(tags) => {
             const input = editorRef.current?.elements.namedItem("tags");
             if (input instanceof HTMLInputElement) {
-              input.value = mergeSuggestedTags(
-                normalizeTags(input.value.split(",")),
-                tags,
-              ).join(", ");
+              setLabelsDraft(
+                mergeSuggestedTags(
+                  normalizeTags(labelsDraft.split(",")),
+                  tags,
+                ).join(", "),
+              );
               input.focus();
             }
             setMessage(
-              "Suggested tags added to draft only. Save changes to keep them.",
+              "Suggested labels added to draft only. Save changes to keep them.",
             );
           }}
           onChoose={(field, value) => {

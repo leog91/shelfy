@@ -201,4 +201,25 @@ export class RemoteItemRepository {
     await this.load();
     return result;
   }
+  async bulkLabels(
+    selected: { id: string; expectedUpdatedAt: string }[],
+    labels: string[],
+    operation: "add" | "remove",
+  ) {
+    this.assertReady();
+    const response = await this.request("/bulk-labels", "POST", {
+      selected,
+      labels,
+      operation,
+    });
+    const result = z
+      .object({ items: z.array(itemSchema) })
+      .parse(await response.json());
+    const changed = new Map(result.items.map((item) => [item.id, item]));
+    this.generation++;
+    this.publish({
+      items: this.snapshot.items.map((item) => changed.get(item.id) ?? item),
+      ready: true,
+    });
+  }
 }

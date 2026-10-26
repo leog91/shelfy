@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { itemLabels } from "@/lib/items/labels";
 import {
   Filters,
   pending,
@@ -31,15 +33,57 @@ const emptyTitles: Record<View, string> = {
 };
 
 export function LibraryView({ view }: { view: View }) {
+  return (
+    <Suspense fallback={<p role="status">Loading view…</p>}>
+      <QueriedLibraryView view={view} />
+    </Suspense>
+  );
+}
+
+function QueriedLibraryView({ view }: { view: View }) {
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+  const label = searchParams.get("label") ?? "";
+  // Reset other filters when browsing between labels, including Back/Forward.
+  return (
+    <FilteredLibraryView
+      key={`${view}:${label}`}
+      view={view}
+      label={label}
+      onLabelChange={(value) => {
+        const params = new URLSearchParams(searchParams.toString());
+        if (value) params.set("label", value);
+        else params.delete("label");
+        router.push(`${pathname}${params.size ? `?${params}` : ""}`, {
+          scroll: false,
+        });
+      }}
+    />
+  );
+}
+
+function FilteredLibraryView({
+  view,
+  label,
+  onLabelChange,
+}: {
+  view: View;
+  label: string;
+  onLabelChange: (label: string) => void;
+}) {
   const { items, ready, error } = useLibrary();
-  const [filters, setFilters] = useState<Filters>({});
+  const [localFilters, setFilters] = useState<Filters>({});
+  const filters = { ...localFilters, tag: label };
   const defaultSort = view === "reminders" ? "reminder" : "newest";
   const selected = selectItems(items, view, {
     ...filters,
     sort: filters.sort ?? defaultSort,
   });
-  const set = (key: keyof Filters, value: string) =>
-    setFilters((current) => ({ ...current, [key]: value }));
+  const set = (key: keyof Filters, value: string) => {
+    if (key === "tag") onLabelChange(value);
+    else setFilters((current) => ({ ...current, [key]: value }));
+  };
   const hasFilters = Boolean(
     filters.query?.trim() ||
     filters.type ||
@@ -48,7 +92,15 @@ export function LibraryView({ view }: { view: View }) {
     filters.tag ||
     filters.source,
   );
-  const tags = [...new Set(items.flatMap((item) => item.tags))].sort();
+  const tags =
+    view === "deleted"
+      ? [
+          ...new Set(
+            items.filter((item) => item.deletedAt).flatMap((item) => item.tags),
+          ),
+        ].sort()
+      : itemLabels(items);
+  if (label && !tags.includes(label)) tags.push(label);
   const sources = [
     ...new Set(
       items
@@ -97,7 +149,7 @@ export function LibraryView({ view }: { view: View }) {
   return (
     <>
       <header className="page-heading">
-        <h1>{viewNames[view]}</h1>
+        <h1>{view === "all" && label ? `Label: ${label}` : viewNames[view]}</h1>
         {view === "reminders" && (
           <p>Revisit dates only. No notifications are sent.</p>
         )}
@@ -172,7 +224,10 @@ export function LibraryView({ view }: { view: View }) {
                 defaultSort={defaultSort}
                 fixedStatus={view === "archived" || view === "deleted"}
                 onChange={set}
-                onClear={() => setFilters({})}
+                onClear={() => {
+                  setFilters({});
+                  onLabelChange("");
+                }}
               />
               {selected.length ? (
                 <ItemList items={selected} bulk={view !== "deleted"} />

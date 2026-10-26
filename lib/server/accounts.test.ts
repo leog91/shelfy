@@ -462,6 +462,157 @@ describe("real Better Auth sessions and owner-scoped API", () => {
       (await (await request(`/${created.id}`, alice)).json()).item,
     ).toEqual(created);
   });
+  it("saves multiple labels on notes atomically without replacing the inferred title", async () => {
+    const response = await request("", alice, "POST", {
+      text: "A labelled note",
+      details: { tags: ["Work", "Design"] },
+    });
+    expect(response.status).toBe(201);
+    const { item } = await response.json();
+    expect(item).toMatchObject({
+      title: "A labelled note",
+      tags: ["Work", "Design"],
+    });
+    expect((await (await request(`/${item.id}`, alice)).json()).item).toEqual(
+      item,
+    );
+    expect((await request(`/${item.id}`, bob)).status).toBe(404);
+  });
+  it("adds/removes bulk labels atomically, retaining other fields and dates", async () => {
+    const first = (
+      await (
+        await request("", alice, "POST", {
+          text: "Bulk one",
+          details: { tags: ["Work", "Keep"] },
+        })
+      ).json()
+    ).item;
+    const second = (
+      await (
+        await request("", alice, "POST", {
+          text: "Bulk two",
+          details: { tags: ["Personal"] },
+        })
+      ).json()
+    ).item;
+    const selected = [first, second].map((item) => ({
+      id: item.id,
+      expectedUpdatedAt: item.updatedAt,
+    }));
+    const response = await request("/bulk-labels", alice, "POST", {
+      selected,
+      labels: ["work", "Ideas"],
+      operation: "add",
+    });
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    const { items: changed } = await response.json();
+    expect(changed[0]).toMatchObject({
+      tags: ["Work", "Keep", "Ideas"],
+      createdAt: first.createdAt,
+      content: first.content,
+      status: first.status,
+    });
+    expect(changed[1].tags).toEqual(["Personal", "work", "Ideas"]);
+    expect(changed[0].updatedAt > first.updatedAt).toBe(true);
+    const removed = await request("/bulk-labels", alice, "POST", {
+      selected: changed.map((item: { id: string; updatedAt: string }) => ({
+        id: item.id,
+        expectedUpdatedAt: item.updatedAt,
+      })),
+      labels: ["WORK"],
+      operation: "remove",
+    });
+    expect(removed.status).toBe(200);
+    expect(
+      (await removed.json()).items.map((item: { tags: string[] }) => item.tags),
+    ).toEqual([
+      ["Keep", "Ideas"],
+      ["Personal", "Ideas"],
+    ]);
+  });
+  it("rolls back bulk labels on stale, cross-owner, deleted or overflowing selections", async () => {
+    const create = async (owner: string, tags: string[] = []) =>
+      (
+        await (
+          await request("", owner, "POST", {
+            text: "Bulk guarded",
+            details: { tags },
+          })
+        ).json()
+      ).item;
+    const first = await create(alice, ["Keep"]);
+    const other = await create(bob);
+    const stale = await create(alice);
+    await request(`/${stale.id}`, alice, "PATCH", {
+      expectedUpdatedAt: stale.updatedAt,
+      patch: { title: "Changed" },
+    });
+    const deleted = await create(alice);
+    const deletedResponse = await request(`/${deleted.id}`, alice, "DELETE", {
+      expectedUpdatedAt: deleted.updatedAt,
+    });
+    const trash = (await deletedResponse.json()).item;
+    const full = await create(
+      alice,
+      Array.from({ length: 50 }, (_, index) => `Label ${index}`),
+    );
+    for (const [bad, status] of [
+      [other, 404],
+      [stale, 409],
+      [trash, 409],
+      [full, 400],
+    ] as const) {
+      const response = await request("/bulk-labels", alice, "POST", {
+        selected: [first, bad].map((item) => ({
+          id: item.id,
+          expectedUpdatedAt: item.updatedAt,
+        })),
+        labels: ["Extra"],
+        operation: "add",
+      });
+      expect(response.status).toBe(status);
+      expect(
+        (await (await request(`/${first.id}`, alice)).json()).item,
+      ).toEqual(first);
+    }
+    const token = { id: first.id, expectedUpdatedAt: first.updatedAt };
+    for (const body of [
+      { selected: [token, token], labels: ["Extra"], operation: "add" },
+      { selected: [], labels: ["Extra"], operation: "add" },
+      { selected: [token], labels: [], operation: "add" },
+      { selected: [token], labels: ["x".repeat(81)], operation: "add" },
+      { selected: [token], labels: ["Extra"], operation: "replace" },
+      { selected: [token], labels: ["Extra"], operation: "add", userId: "bob" },
+      {
+        selected: Array.from({ length: 201 }, () => ({
+          ...token,
+          id: crypto.randomUUID(),
+        })),
+        labels: ["Extra"],
+        operation: "add",
+      },
+    ])
+      expect((await request("/bulk-labels", alice, "POST", body)).status).toBe(
+        400,
+      );
+    const body = { selected: [token], labels: ["Extra"], operation: "add" };
+    expect((await request("/bulk-labels", "", "POST", body)).status).toBe(401);
+    expect(
+      (
+        await request("/bulk-labels", alice, "POST", body, {
+          origin: "https://untrusted.test",
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await request("/bulk-labels", alice, "POST", body, {
+          "x-workspace-id": "wrong-account",
+        })
+      ).status,
+    ).toBe(401);
+  });
   it("supports actual sign in, sign out, forged cookies and expiration", async () => {
     expect(
       (await request("", "personal-library.session_token=forged")).status,

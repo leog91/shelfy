@@ -86,7 +86,9 @@ test(
     await page
       .getByLabel("Title", { exact: true })
       .fill("React architecture guide");
-    await page.getByLabel("Tags", { exact: false }).fill("Development, React");
+    await page
+      .getByRole("textbox", { name: "Labels", exact: false })
+      .fill("Development, React");
     await page
       .getByRole("button", { name: "Save changes", exact: true })
       .click();

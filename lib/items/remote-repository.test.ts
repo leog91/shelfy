@@ -7,6 +7,41 @@ afterEach(() => {
   vi.useRealTimers();
 });
 describe("account repository lifecycle", () => {
+  it("publishes validated bulk label results without another library fetch and retains state on conflict", async () => {
+    const item = createItem("Note"),
+      other = createItem("Other");
+    const changed = {
+      ...item,
+      tags: ["Work"],
+      updatedAt: new Date(Date.parse(item.updatedAt) + 1).toISOString(),
+    };
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({ version: 3, items: [item, other] }),
+      )
+      .mockResolvedValueOnce(Response.json({ items: [changed] }))
+      .mockResolvedValueOnce(
+        Response.json({ error: "Changed elsewhere" }, { status: 409 }),
+      );
+    vi.stubGlobal("fetch", fetch);
+    const repository = new RemoteItemRepository("alice");
+    await repository.load();
+    const selected = [{ id: item.id, expectedUpdatedAt: item.updatedAt }];
+    await repository.bulkLabels(selected, ["Work"], "add");
+    expect(repository.getSnapshot().items).toEqual([changed, other]);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch.mock.calls[1][0]).toBe("/api/items/bulk-labels");
+    expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({
+      selected,
+      labels: ["Work"],
+      operation: "add",
+    });
+    await expect(
+      repository.bulkLabels(selected, ["Work"], "remove"),
+    ).rejects.toThrow("Changed elsewhere");
+    expect(repository.getSnapshot().items).toEqual([changed, other]);
+  });
   it("skips fresh automatic loads but allows expiry and forced refresh", async () => {
     vi.useFakeTimers();
     const fetch = vi

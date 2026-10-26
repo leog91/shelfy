@@ -7,10 +7,14 @@ import { linkTitle, displayTitle } from "@/lib/items/link-title";
 import { MetadataPreview } from "./metadata-preview";
 import { errorMessage, useLibrary } from "./library-provider";
 import Link from "next/link";
+import { LabelPicker } from "./label-picker";
+import { itemLabels } from "@/lib/items/labels";
+import { findDuplicate } from "@/lib/items/duplicates";
 
 export function Capture({ initialText = "" }: { initialText?: string }) {
   const inputId = useId();
   const intentHelpId = useId();
+  const duplicateHelpId = useId();
   const { repository, ready, error, items } = useLibrary();
   const [text, setText] = useState(initialText);
   const [intent, setIntent] = useState("");
@@ -27,14 +31,7 @@ export function Capture({ initialText = "" }: { initialText?: string }) {
   } | null>(null);
   const url =
     !/\s/.test(text.trim()) && safeUrl(text.trim()) ? text.trim() : "";
-  const duplicate =
-    text.trim() &&
-    items.find(
-      (item) =>
-        !item.deletedAt &&
-        (item.url === text.trim() ||
-          (item.type === "note" && item.content?.trim() === text.trim())),
-    );
+  const duplicate = findDuplicate(items, text);
   async function save() {
     if (savingRef.current) return;
     savingRef.current = true;
@@ -79,6 +76,7 @@ export function Capture({ initialText = "" }: { initialText?: string }) {
         <textarea
           id={inputId}
           ref={input}
+          aria-describedby={duplicate ? duplicateHelpId : undefined}
           disabled={!ready}
           readOnly={saving}
           placeholder="Paste a URL or write a note"
@@ -98,68 +96,77 @@ export function Capture({ initialText = "" }: { initialText?: string }) {
             if (e.key === "Escape") e.currentTarget.blur();
           }}
         />
-        {url && (
+        {text.trim() && (
           <details key={url} className="capture-details">
-            <summary>Link details · {details?.title || linkTitle(url)}</summary>
+            <summary>
+              {url
+                ? `Link details · ${details?.title || linkTitle(url)}`
+                : "Note details & labels"}
+            </summary>
             <fieldset disabled={saving}>
-              <label>
-                Title
-                <input
-                  value={details?.title ?? linkTitle(url)}
-                  maxLength={500}
-                  onChange={(e) =>
-                    setDetails((current) => ({
-                      ...current,
-                      url,
-                      title: e.target.value,
-                    }))
-                  }
-                />
-              </label>
-              <label>
-                Description
-                <textarea
-                  value={details?.description ?? ""}
-                  maxLength={10000}
-                  onChange={(e) =>
-                    setDetails((current) => ({
-                      ...current,
-                      url,
-                      description: e.target.value,
-                    }))
-                  }
-                />
-              </label>
-              <label>
-                Tags <span className="muted">(comma separated)</span>
-                <input
-                  value={details?.tags ?? ""}
-                  onChange={(e) =>
-                    setDetails((current) => ({
-                      ...current,
-                      url,
-                      tags: e.target.value,
-                    }))
-                  }
-                />
-              </label>
-              <MetadataPreview
-                key={url}
-                url={url}
-                onChoose={(field, value) =>
-                  setDetails((current) => ({ ...current, url, [field]: value }))
-                }
-                onChooseTags={(tags) =>
-                  setDetails((current) => ({
-                    ...current,
-                    url,
-                    tags: mergeSuggestedTags(
-                      normalizeTags((current?.tags ?? "").split(",")),
-                      tags,
-                    ).join(", "),
-                  }))
+              {url && (
+                <>
+                  <label>
+                    Title
+                    <input
+                      value={details?.title ?? (url ? linkTitle(url) : "")}
+                      maxLength={500}
+                      onChange={(e) =>
+                        setDetails((current) => ({
+                          ...current,
+                          url,
+                          title: e.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label>
+                    Description
+                    <textarea
+                      value={details?.description ?? ""}
+                      maxLength={10000}
+                      onChange={(e) =>
+                        setDetails((current) => ({
+                          ...current,
+                          url,
+                          description: e.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                </>
+              )}
+              <LabelPicker
+                value={details?.tags ?? ""}
+                options={itemLabels(items)}
+                disabled={saving}
+                onChange={(tags) =>
+                  setDetails((current) => ({ ...current, url, tags }))
                 }
               />
+              {url && (
+                <MetadataPreview
+                  key={url}
+                  url={url}
+                  onChoose={(field, value) =>
+                    setDetails((current) => ({
+                      ...current,
+                      url,
+                      [field]: value,
+                    }))
+                  }
+                  onChooseTags={(tags) =>
+                    setDetails((current) => ({
+                      ...current,
+                      url,
+                      tags: mergeSuggestedTags(
+                        normalizeTags((current?.tags ?? "").split(",")),
+                        tags,
+                      ).join(", "),
+                    }))
+                  }
+                />
+              )}
             </fieldset>
           </details>
         )}
@@ -193,7 +200,7 @@ export function Capture({ initialText = "" }: { initialText?: string }) {
         </div>
       </form>
       {duplicate && (
-        <p className="muted">
+        <p className="duplicate-warning" id={duplicateHelpId} role="status">
           Possibly already saved:{" "}
           <Link href={`/items/${duplicate.id}`} className="duplicate-link">
             {displayTitle(duplicate)}

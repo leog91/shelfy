@@ -38,6 +38,17 @@ const captureSchema = z
   })
   .strict();
 const deleteSchema = z.object({ expectedUpdatedAt: z.iso.datetime() }).strict();
+const selectionSchema = z
+  .array(
+    z.object({ id: z.uuid(), expectedUpdatedAt: z.iso.datetime() }).strict(),
+  )
+  .min(1)
+  .max(200)
+  .refine(
+    (selected) =>
+      new Set(selected.map((item) => item.id)).size === selected.length,
+    "Select distinct items.",
+  );
 
 export async function readJson(
   request: Request,
@@ -169,14 +180,7 @@ export function createItemApi(options: {
       if (path === "bulk" && request.method === "POST") {
         const input = z
           .object({
-            selected: z
-              .array(
-                z
-                  .object({ id: z.uuid(), expectedUpdatedAt: z.iso.datetime() })
-                  .strict(),
-              )
-              .min(1)
-              .max(200),
+            selected: selectionSchema,
             status: shape.status,
           })
           .strict()
@@ -188,6 +192,26 @@ export function createItemApi(options: {
           throw new HttpError(400, "Select distinct items.");
         await service.bulkUpdate(input.selected, input.status);
         return json({ updated: input.selected.length });
+      }
+      if (path === "bulk-labels" && request.method === "POST") {
+        const input = z
+          .object({
+            selected: selectionSchema,
+            labels: shape.tags.refine(
+              (labels) => labels.length > 0,
+              "Choose at least one label.",
+            ),
+            operation: z.enum(["add", "remove"]),
+          })
+          .strict()
+          .parse(await readJson(request));
+        return json({
+          items: await service.bulkLabels(
+            input.selected,
+            input.labels,
+            input.operation,
+          ),
+        });
       }
       const [itemId, action, ...extra] = path.split("/");
       const id = z.uuid().safeParse(itemId);
