@@ -15,6 +15,7 @@ import { errorMessage, useLibrary } from "./library-provider";
 import { MetadataPreview } from "./metadata-preview";
 import { fromLocalDateTime, toLocalDateTime } from "@/lib/items/reminders";
 import { displayTitle } from "@/lib/items/link-title";
+import { mergeSuggestedTags } from "@/lib/items/tag-suggestions";
 
 export function ItemDetail({ id }: { id: string }) {
   const { items, ready, error } = useLibrary();
@@ -294,6 +295,19 @@ function ItemEditor({ item }: { item: Item }) {
         <MetadataPreview
           key={item.url}
           url={item.url}
+          onChooseTags={(tags) => {
+            const input = editorRef.current?.elements.namedItem("tags");
+            if (input instanceof HTMLInputElement) {
+              input.value = mergeSuggestedTags(
+                normalizeTags(input.value.split(",")),
+                tags,
+              ).join(", ");
+              input.focus();
+            }
+            setMessage(
+              "Suggested tags added to draft only. Save changes to keep them.",
+            );
+          }}
           onChoose={(field, value) => {
             const input = editorRef.current?.elements.namedItem(field);
             if (

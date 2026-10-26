@@ -1,7 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { Check, ExternalLink, ArrowRight, Archive, Undo2 } from "lucide-react";
+import {
+  Check,
+  ExternalLink,
+  ArrowRight,
+  Archive,
+  Undo2,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { Item } from "@/lib/items/model";
 import { errorMessage, useLibrary } from "./library-provider";
 import { useState } from "react";
@@ -85,6 +93,22 @@ export function ItemList({
     try {
       await repository.restore(item.id, item.updatedAt);
       announce(`${displayTitle(item)}: restored.`);
+      setFailure("");
+      restoreFocus(previous);
+    } catch (error) {
+      setFailure(errorMessage(error));
+    } finally {
+      setBusy(null);
+    }
+  }
+  async function trash(item: Item) {
+    const previous = document.activeElement;
+    setBusy(item.id);
+    try {
+      await repository.delete(item.id, item.updatedAt);
+      announce(
+        `${displayTitle(item)}: moved to Deleted. You can restore it there.`,
+      );
       setFailure("");
       restoreFocus(previous);
     } catch (error) {
@@ -182,9 +206,25 @@ export function ItemList({
                 )}
               </div>
               <div className="item-info">
-                <Link className="item-title" href={`/items/${item.id}`}>
-                  {title}
-                </Link>
+                {item.url ? (
+                  <a
+                    className="item-title"
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={title}
+                    aria-describedby={`open-${item.id}`}
+                  >
+                    {title}
+                    <span id={`open-${item.id}`} className="sr-only">
+                      Open original (new tab)
+                    </span>
+                  </a>
+                ) : (
+                  <Link className="item-title" href={`/items/${item.id}`}>
+                    {title}
+                  </Link>
+                )}
                 {item.description && (
                   <p className="item-description">{item.description}</p>
                 )}
@@ -221,6 +261,35 @@ export function ItemList({
                 {item.deletedAt ? "deleted" : item.status}
               </span>
               <div className="row-actions">
+                <Tooltip
+                  label={
+                    item.deletedAt
+                      ? "View saved details"
+                      : "Edit saved details and tags"
+                  }
+                >
+                  <Link
+                    className="item-edit"
+                    href={`/items/${item.id}`}
+                    aria-label={`${item.deletedAt ? "Details" : "Edit"}: ${title}`}
+                  >
+                    <Pencil size={16} aria-hidden="true" />
+                    {item.deletedAt ? "Details" : "Edit"}
+                  </Link>
+                </Tooltip>
+                {!item.deletedAt && (
+                  <Tooltip label="Move to Deleted (recoverable)">
+                    <button
+                      className="item-trash"
+                      disabled={busy === item.id}
+                      onClick={() => trash(item)}
+                      aria-label={`Move to Deleted: ${title}`}
+                    >
+                      <Trash2 size={16} aria-hidden="true" />
+                      Trash
+                    </button>
+                  </Tooltip>
+                )}
                 {item.url && (
                   <Tooltip label="Open original (new tab)">
                     <a

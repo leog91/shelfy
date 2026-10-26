@@ -1,6 +1,95 @@
 import { expect, test } from "./fixtures";
 
 test(
+  "cards open originals while Edit, selection and Trash stay independent",
+  { tag: "@mobile" },
+  async ({ page, context }) => {
+    await context.route("https://example.com/**", (route) =>
+      route.fulfill({
+        contentType: "text/html",
+        body: "<title>Original page</title>Original page",
+      }),
+    );
+    const response = await page.request.post("/api/items", {
+      headers: { Origin: "http://localhost:3100" },
+      data: {
+        text: "https://example.com/article",
+        details: {
+          title: "Card test",
+          description: "Saved context",
+          tags: ["Projects"],
+        },
+      },
+    });
+    expect(response.ok()).toBe(true);
+    await page.goto("/all");
+    const row = page.locator(".item-row:visible");
+    await expect(
+      row.getByRole("link", { name: "Card test", exact: true }),
+    ).toHaveAttribute("href", "https://example.com/article");
+    await row.hover({ position: { x: 70, y: 15 } });
+    expect(context.pages()).toHaveLength(1);
+    expect(
+      await row.evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        return document
+          .elementFromPoint(box.left + 48, box.top + 15)
+          ?.closest("a")?.className;
+      }),
+    ).toBe("item-title");
+    const popupPromise = page.waitForEvent("popup");
+    await row.click({ position: { x: 48, y: 15 } });
+    const popup = await popupPromise;
+    await expect(popup).toHaveURL("https://example.com/article");
+    await popup.close();
+    await expect(page).toHaveURL(/\/all$/);
+    await row
+      .getByRole("checkbox", { name: "Select: Card test", exact: true })
+      .check();
+    await expect(page.getByText("1 selected", { exact: true })).toBeVisible();
+    await row
+      .getByRole("link", { name: "Edit: Card test", exact: true })
+      .click();
+    await expect(page.getByLabel("Tags", { exact: false })).toHaveValue(
+      "Projects",
+    );
+    await page
+      .getByRole("link", { name: "Back to library", exact: true })
+      .click();
+    await row
+      .getByRole("button", { name: "Move to Deleted: Card test", exact: true })
+      .click();
+    await expect(row).toHaveCount(0);
+    expect(context.pages()).toHaveLength(1);
+    await expect(page.locator("#main")).toBeFocused();
+    await page
+      .getByRole("navigation")
+      .getByRole("link", { name: "Deleted", exact: true })
+      .click();
+    await expect(
+      row.getByRole("link", { name: "Details: Card test", exact: true }),
+    ).toBeVisible();
+    await expect(
+      row.getByRole("button", {
+        name: "Move to Deleted: Card test",
+        exact: true,
+      }),
+    ).toHaveCount(0);
+    await row
+      .getByRole("button", { name: "Restore: Card test", exact: true })
+      .click();
+    await expect(row).toHaveCount(0);
+    await page
+      .getByRole("navigation")
+      .getByRole("link", { name: "All items", exact: true })
+      .click();
+    await expect(
+      row.getByRole("link", { name: "Card test", exact: true }),
+    ).toBeVisible();
+  },
+);
+
+test(
   "plain personal UI, capture focus, compact library, filters and book favicon",
   { tag: "@mobile" },
   async ({ page }) => {

@@ -135,6 +135,34 @@ export const linkSites = [
     intent: "read",
     domains: ["reddit.com", "redd.it"],
   },
+  {
+    id: "wikipedia",
+    label: "Wikipedia",
+    icon: "wikipedia",
+    intent: "read",
+    domains: ["wikipedia.org"],
+  },
+  {
+    id: "google-search",
+    label: "Google Search",
+    icon: "google",
+    intent: "read",
+    domains: [
+      "google.com",
+      "google.co.uk",
+      "google.es",
+      "google.de",
+      "google.fr",
+      "google.it",
+      "google.pt",
+      "google.nl",
+      "google.ca",
+      "google.com.au",
+      "google.com.br",
+      "google.co.jp",
+    ],
+    paths: ["/search"],
+  },
 ] as const;
 
 export type LinkSite = (typeof linkSites)[number];
@@ -152,11 +180,18 @@ export function detectLinkSite(
     )
       return undefined;
     const host = url.hostname.toLowerCase().replace(/\.$/, "");
-    return linkSites.find((site) =>
-      site.domains.some(
+    return linkSites.find((site) => {
+      if ("paths" in site)
+        return (
+          site.paths.some((path) => path === url.pathname) &&
+          site.domains.some(
+            (domain) => host === domain || host === `www.${domain}`,
+          )
+        );
+      return site.domains.some(
         (domain) => host === domain || host.endsWith(`.${domain}`),
-      ),
-    );
+      );
+    });
   } catch {
     return undefined;
   }

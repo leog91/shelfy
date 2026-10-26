@@ -68,7 +68,7 @@ export class ServerItems {
   async create(
     text: string,
     intent?: Item["intent"],
-    details?: Pick<ItemPatch, "title" | "description">,
+    details?: Pick<ItemPatch, "title" | "description" | "tags">,
   ) {
     let item: Item;
     try {

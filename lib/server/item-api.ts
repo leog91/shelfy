@@ -28,7 +28,11 @@ const captureSchema = z
     text: z.string().min(1).max(200000),
     intent: z.enum(intents).optional(),
     details: z
-      .object({ title: shape.title.optional(), description: shape.description })
+      .object({
+        title: shape.title.optional(),
+        description: shape.description,
+        tags: shape.tags.optional(),
+      })
       .strict()
       .optional(),
   })

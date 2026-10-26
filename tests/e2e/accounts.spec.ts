@@ -190,7 +190,9 @@ test("account-only gate, separate device access, conflicts, and logout privacy",
     .fill("https://example.com/preview");
   await page.getByRole("button", { name: "Save to Inbox" }).click();
   await expect(page.getByRole("status")).toContainText("Saved");
-  await page.getByRole("link", { name: "example.com", exact: true }).click();
+  await page
+    .getByRole("link", { name: "Edit: example.com", exact: true })
+    .click();
   await page
     .getByRole("textbox", { name: "Title", exact: true })
     .fill("My manual title");

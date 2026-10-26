@@ -1,7 +1,8 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
-import { intents, Item, safeUrl } from "@/lib/items/model";
+import { intents, Item, safeUrl, normalizeTags } from "@/lib/items/model";
+import { mergeSuggestedTags } from "@/lib/items/tag-suggestions";
 import { linkTitle, displayTitle } from "@/lib/items/link-title";
 import { MetadataPreview } from "./metadata-preview";
 import { errorMessage, useLibrary } from "./library-provider";
@@ -22,6 +23,7 @@ export function Capture({ initialText = "" }: { initialText?: string }) {
     url: string;
     title?: string;
     description?: string;
+    tags?: string;
   } | null>(null);
   const url =
     !/\s/.test(text.trim()) && safeUrl(text.trim()) ? text.trim() : "";
@@ -44,7 +46,11 @@ export function Capture({ initialText = "" }: { initialText?: string }) {
         text,
         intent ? (intent as Item["intent"]) : undefined,
         details?.url === url
-          ? { title: details.title, description: details.description }
+          ? {
+              title: details.title,
+              description: details.description,
+              tags: normalizeTags((details.tags ?? "").split(",")),
+            }
           : undefined,
       );
       setText("");
@@ -124,11 +130,34 @@ export function Capture({ initialText = "" }: { initialText?: string }) {
                   }
                 />
               </label>
+              <label>
+                Tags <span className="muted">(comma separated)</span>
+                <input
+                  value={details?.tags ?? ""}
+                  onChange={(e) =>
+                    setDetails((current) => ({
+                      ...current,
+                      url,
+                      tags: e.target.value,
+                    }))
+                  }
+                />
+              </label>
               <MetadataPreview
                 key={url}
                 url={url}
                 onChoose={(field, value) =>
                   setDetails((current) => ({ ...current, url, [field]: value }))
+                }
+                onChooseTags={(tags) =>
+                  setDetails((current) => ({
+                    ...current,
+                    url,
+                    tags: mergeSuggestedTags(
+                      normalizeTags((current?.tags ?? "").split(",")),
+                      tags,
+                    ).join(", "),
+                  }))
                 }
               />
             </fieldset>

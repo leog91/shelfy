@@ -7,10 +7,11 @@ describe("known link sites", () => {
     "matches $label roots and actual subdomains, never lookalikes",
     (site) => {
       for (const domain of site.domains) {
-        expect(detectLinkSite(`https://${domain}/item?keep=1#details`)).toBe(
+        const path = "paths" in site ? site.paths[0] : "/item";
+        expect(detectLinkSite(`https://${domain}${path}?keep=1#details`)).toBe(
           site,
         );
-        expect(detectLinkSite(`https://www.${domain}/item`)).toBe(site);
+        expect(detectLinkSite(`https://www.${domain}${path}`)).toBe(site);
         expect(
           detectLinkSite(`https://${domain}.evil.example/`),
         ).toBeUndefined();
@@ -45,6 +46,10 @@ describe("known link sites", () => {
     ["https://x.com/user/status/1", "x"],
     ["https://old.reddit.com/r/example/comments/1", "reddit"],
     ["https://redd.it/abc", "reddit"],
+    ["https://en.wikipedia.org/wiki/RAG", "wikipedia"],
+    ["https://es.m.wikipedia.org/wiki/Python", "wikipedia"],
+    ["https://www.google.com/search?q=rag", "google-search"],
+    ["https://www.google.es/search?q=python", "google-search"],
   ])("recognizes %s", (url, id) => expect(detectLinkSite(url)?.id).toBe(id));
   it.each([
     undefined,
@@ -55,6 +60,12 @@ describe("known link sites", () => {
     "https://zalando.invalid",
     "https://blue-tomato.com.evil.example",
     "https://notreddit.com",
+    "https://wikipedia.org.evil.example/wiki/RAG",
+    "https://www.google.com/maps",
+    "https://maps.google.com/search?q=rag",
+    "https://www.google.com/",
+    "https://www.google.com.evil.example/search?q=rag",
+    "https://google.fake/search?q=rag",
     "https://amazon.de@evil.example/",
     "https://user:password@amazon.de/",
     "ftp://amazon.de/item",

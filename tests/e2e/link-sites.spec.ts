@@ -21,6 +21,8 @@ test("shop detection respects intent overrides and site icons stay local", async
     ["https://x.com/example/status/1", ""],
     ["https://old.reddit.com/r/example/comments/1", ""],
     ["https://example.com/article", ""],
+    ["https://en.wikipedia.org/wiki/Python", ""],
+    ["https://www.google.com/search?q=rag", ""],
   ]) {
     await capture
       .getByRole("textbox", { name: "URL or note", exact: true })
@@ -38,7 +40,7 @@ test("shop detection respects intent overrides and site icons stay local", async
     .getByRole("link", { name: "All items", exact: true })
     .click();
   const rows = page.locator(".item-row:visible");
-  await expect(rows).toHaveCount(7);
+  await expect(rows).toHaveCount(9);
   for (const [title, label] of [
     ["amazon.de", "Amazon"],
     ["zalando.at", "Zalando"],
@@ -46,6 +48,8 @@ test("shop detection respects intent overrides and site icons stay local", async
     ["amazon.co.uk", "Amazon"],
     ["Post by @example", "X (Twitter)"],
     ["old.reddit.com", "Reddit"],
+    ["Python", "Wikipedia"],
+    ["google.com", "Google Search"],
   ]) {
     const row = rows.filter({
       has: page.getByRole("link", { name: title, exact: true }),

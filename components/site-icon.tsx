@@ -5,6 +5,37 @@ import type { LinkSite } from "@/lib/items/link-sites";
 // The adjacent site label supplies the accessible name.
 export function SiteIcon({ site }: { site: LinkSite }) {
   if (site.icon === "shop") return <ShoppingBag size={18} aria-hidden="true" />;
+  if (site.icon === "wikipedia")
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+        <text
+          x="12"
+          y="19"
+          textAnchor="middle"
+          fontFamily="Georgia, serif"
+          fontSize="23"
+          fill="currentColor"
+        >
+          W
+        </text>
+      </svg>
+    );
+  if (site.icon === "google")
+    return (
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        strokeWidth="4"
+        aria-hidden="true"
+      >
+        <path d="M19 5a9 9 0 0 0-13.4 0" stroke="#EA4335" />
+        <path d="M5.6 5a9 9 0 0 0-1.7 10" stroke="#FBBC05" />
+        <path d="M3.9 15a9 9 0 0 0 15.1 4" stroke="#34A853" />
+        <path d="M19 19a9 9 0 0 0 2-7h-9" stroke="#4285F4" />
+      </svg>
+    );
   if (site.icon === "youtube")
     return (
       <svg

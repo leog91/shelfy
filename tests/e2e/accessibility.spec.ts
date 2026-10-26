@@ -44,7 +44,9 @@ test(
     await audit(page);
     await page.locator(".filter-options:visible > summary").click();
     await audit(page);
-    await page.locator(".item-title:visible").click();
+    await page
+      .getByRole("link", { name: "Edit: example.com", exact: true })
+      .click();
     await expect(
       page.getByRole("button", { name: "Save changes" }),
     ).toBeVisible();

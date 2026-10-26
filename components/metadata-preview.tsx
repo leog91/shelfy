@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { z } from "zod";
 import { errorMessage, useLibrary } from "./library-provider";
+import { suggestTags } from "@/lib/items/tag-suggestions";
 
 const previewSchema = z.object({
   title: z.string().max(500).optional(),
@@ -11,9 +12,11 @@ const previewSchema = z.object({
 export function MetadataPreview({
   url,
   onChoose,
+  onChooseTags,
 }: {
   url: string;
   onChoose: (field: "title" | "description", value: string) => void;
+  onChooseTags: (tags: string[]) => void;
 }) {
   const { account } = useLibrary();
   const [preview, setPreview] = useState<z.infer<typeof previewSchema> | null>(
@@ -21,6 +24,7 @@ export function MetadataPreview({
   );
   const [failure, setFailure] = useState("");
   const [busy, setBusy] = useState(false);
+  const tags = preview ? suggestTags({ url, ...preview }) : [];
   return (
     <section className="metadata-preview">
       <p className="muted">
@@ -33,6 +37,7 @@ export function MetadataPreview({
         onClick={async () => {
           setBusy(true);
           setFailure("");
+          setPreview(null);
           try {
             const response = await fetch("/api/metadata", {
               method: "POST",
@@ -83,7 +88,18 @@ export function MetadataPreview({
               </button>
             </>
           )}
-          {!preview.title && !preview.description && (
+          {tags.length > 0 && (
+            <>
+              <p>Suggested tags: {tags.join(", ")}</p>
+              <p className="muted">
+                Keyword-based suggestions, not AI. Review before saving.
+              </p>
+              <button type="button" onClick={() => onChooseTags(tags)}>
+                Add suggested tags to draft
+              </button>
+            </>
+          )}
+          {!preview.title && !preview.description && tags.length === 0 && (
             <p>No useful details found. Your original item is unchanged.</p>
           )}
         </div>

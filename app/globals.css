@@ -399,6 +399,7 @@ input[type="checkbox"] {
   border-top: 1px solid var(--line);
 }
 .item-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -465,6 +466,37 @@ input[type="checkbox"] {
 .item-title {
   font-weight: 500;
   overflow-wrap: anywhere;
+}
+.item-title::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+}
+.item-title:hover::after {
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+.item-title:focus-visible::after {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.item-checkbox,
+.row-actions {
+  z-index: 1;
+}
+.row-actions {
+  position: relative;
+}
+.item-edit,
+.item-trash {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding-inline: 8px;
+  gap: 5px;
+  font-size: 12px;
 }
 .item-title:hover,
 .duplicate-link {

@@ -101,7 +101,7 @@ export class RemoteItemRepository {
   async create(
     text: string,
     intent?: Item["intent"],
-    details?: Pick<ItemPatch, "title" | "description">,
+    details?: Pick<ItemPatch, "title" | "description" | "tags">,
   ) {
     this.assertReady();
     const response = await this.request("", "POST", { text, intent, details });

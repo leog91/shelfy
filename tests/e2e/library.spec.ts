@@ -80,7 +80,9 @@ test(
       "href",
       "https://example.com/technical-article?topic=react",
     );
-    await page.getByRole("link", { name: "example.com", exact: true }).click();
+    await page
+      .getByRole("link", { name: "Edit: example.com", exact: true })
+      .click();
     await page
       .getByLabel("Title", { exact: true })
       .fill("React architecture guide");
@@ -146,8 +148,7 @@ test("note, YouTube, product override, archive, portability and confirmed delete
     .getByRole("link", { name: "Shopping", exact: true })
     .click();
   await page
-    .locator(".item-title:visible")
-    .filter({ hasText: "shop.example" })
+    .getByRole("link", { name: "Edit: shop.example", exact: true })
     .click();
   await page
     .getByRole("combobox", { name: "Type", exact: true })
