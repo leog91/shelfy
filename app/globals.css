@@ -839,6 +839,21 @@ textarea::placeholder {
   margin-block: 20px;
   padding-block: 16px;
 }
+.item-metadata-action > summary,
+.item-metadata-action > div {
+  position: relative;
+  z-index: 1;
+}
+.item-row:has(.item-metadata-action[open]) {
+  align-items: flex-start;
+}
+.item-metadata-action > summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding-block: 10px;
+  width: fit-content;
+  font-size: 12px;
+}
 .reminder-summary {
   list-style: none;
   padding: 0;

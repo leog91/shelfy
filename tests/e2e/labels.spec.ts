@@ -212,8 +212,11 @@ test("capture and edit multiple note labels @mobile", async ({ page }) => {
     .getByRole("textbox", { name: "Labels", exact: false })
     .fill("Personal, Ideas");
   await page.getByRole("button", { name: "Save changes", exact: true }).click();
-  await expect(page.getByRole("status")).toHaveText("Changes saved.");
+  await expect(page).toHaveURL(/\/all$/);
   await page.reload();
+  await page
+    .getByRole("link", { name: "Edit: Labelled capture", exact: true })
+    .click();
   await expect(
     page.getByRole("textbox", { name: "Labels", exact: false }),
   ).toHaveValue("Personal, Ideas");

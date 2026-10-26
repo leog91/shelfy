@@ -150,7 +150,7 @@ function ItemEditor({ item }: { item: Item }) {
             );
             setBaseUpdatedAt(updated.updatedAt);
             setFailure("");
-            setMessage("Changes saved.");
+            router.push("/all");
           } catch (error) {
             setFailure(errorMessage(error));
             setMessage("");

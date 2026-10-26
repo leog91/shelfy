@@ -1,4 +1,107 @@
 import { expect, test } from "./fixtures";
+import AxeBuilder from "@axe-core/playwright";
+
+test("review, cancel and save link suggestions directly in the list @mobile", async ({
+  page,
+}) => {
+  const response = await page.request.post("/api/items", {
+    headers: { Origin: "http://localhost:3100" },
+    data: {
+      text: "https://example.com/article",
+      details: { title: "My title", description: "My context", tags: ["Keep"] },
+    },
+  });
+  expect(response.ok()).toBe(true);
+  const { item } = await response.json();
+  let previews = 0;
+  await page.route("**/api/metadata", async (route) => {
+    previews++;
+    await route.fulfill({
+      json: {
+        title: "Python tutorial",
+        description: "Learn Python programming.",
+      },
+    });
+  });
+  await page.goto("/all");
+  const panel = page.locator(".item-metadata-action:visible");
+  await panel.locator("summary").first().click();
+  expect(previews).toBe(0);
+  await panel
+    .getByRole("button", { name: "Fetch optional link details" })
+    .click();
+  await panel
+    .getByRole("button", { name: "Use suggested title in draft" })
+    .click();
+  await panel
+    .getByRole("button", { name: "Use suggested description in draft" })
+    .click();
+  await panel
+    .getByRole("button", { name: "Add suggested labels to draft" })
+    .click();
+  expect(
+    (await (await page.request.get(`/api/items/${item.id}`)).json()).item.title,
+  ).toBe("My title");
+  await panel.getByRole("button", { name: "Cancel", exact: true }).click();
+  await panel.locator("summary").first().click();
+  await expect(panel.getByLabel("Title", { exact: true })).toHaveValue(
+    "My title",
+  );
+  await expect(panel.getByLabel("Description / why I saved this")).toHaveValue(
+    "My context",
+  );
+  await panel
+    .getByRole("button", { name: "Fetch optional link details" })
+    .click();
+  await panel
+    .getByRole("button", { name: "Use suggested title in draft" })
+    .click();
+  await panel
+    .getByRole("button", { name: "Use suggested description in draft" })
+    .click();
+  await panel
+    .getByRole("button", { name: "Add suggested labels to draft" })
+    .click();
+  await panel.getByLabel("Title", { exact: true }).fill("Reviewed title");
+  const results = await new AxeBuilder({ page })
+    .include(".item-metadata-action")
+    .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+    .analyze();
+  expect(results.violations).toEqual([]);
+  await page.route(`**/api/items/${item.id}`, (route) =>
+    route.fulfill({
+      status: 409,
+      json: { error: "Item changed. Reload and try again." },
+    }),
+  );
+  await panel
+    .getByRole("button", { name: "Save changes", exact: true })
+    .click();
+  await expect(panel.getByRole("alert")).toBeVisible();
+  await expect(panel.getByLabel("Title", { exact: true })).toHaveValue(
+    "Reviewed title",
+  );
+  await page.unroute(`**/api/items/${item.id}`);
+  await panel
+    .getByRole("button", { name: "Save changes", exact: true })
+    .click();
+  await expect(panel).not.toHaveAttribute("open");
+  await expect(page).toHaveURL(/\/all$/);
+  await expect(
+    page.getByRole("link", { name: "Reviewed title", exact: true }),
+  ).toBeVisible();
+  await page.reload();
+  await expect(
+    page.getByText("Learn Python programming.", { exact: true }),
+  ).toBeVisible();
+  const saved = (await (await page.request.get(`/api/items/${item.id}`)).json())
+    .item;
+  expect(saved.title).toBe("Reviewed title");
+  expect(saved.tags).toEqual(
+    expect.arrayContaining(["Keep", "Python", "Tutorials"]),
+  );
+  expect(saved.createdAt).toBe(item.createdAt);
+});
 
 test("readable link titles and explicitly applied capture details survive reload", async ({
   page,
@@ -125,8 +228,11 @@ test("keyword tags stay optional, merge into drafts and persist only on save", a
     (await (await page.request.get("/api/items/export")).json()).items[0].tags,
   ).toEqual(exported[0].tags);
   await page.getByRole("button", { name: "Save changes", exact: true }).click();
-  await expect(page.getByRole("status")).toHaveText("Changes saved.");
+  await expect(page).toHaveURL(/\/all$/);
   await page.reload();
+  await page
+    .getByRole("link", { name: "Edit: My custom title", exact: true })
+    .click();
   await expect(
     page.getByRole("textbox", { name: "Labels", exact: false }),
   ).toHaveValue("Keep, python, AI, RAG, Tutorials");

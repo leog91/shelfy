@@ -143,7 +143,7 @@ test("account-only gate, separate device access, conflicts, and logout privacy",
   await phone
     .getByRole("button", { name: "Save changes", exact: true })
     .click();
-  await expect(phone.getByRole("status")).toHaveText("Changes saved.");
+  await expect(phone).toHaveURL(/\/all$/);
   await page
     .getByRole("textbox", { name: "Title", exact: true })
     .fill("Stale draft from first device");
@@ -165,7 +165,7 @@ test("account-only gate, separate device access, conflicts, and logout privacy",
     .getByLabel("Revisit date/time", { exact: false })
     .fill("2030-06-10T12:30");
   await page.getByRole("button", { name: "Save changes", exact: true }).click();
-  await expect(page.getByRole("status")).toHaveText("Changes saved.");
+  await expect(page).toHaveURL(/\/all$/);
   await page.goto("/reminders");
   await expect(
     page.getByRole("link", { name: "Updated on second device", exact: true }),
@@ -214,8 +214,11 @@ test("account-only gate, separate device access, conflicts, and logout privacy",
     .getByRole("button", { name: "Use suggested description in draft" })
     .click();
   await page.getByRole("button", { name: "Save changes", exact: true }).click();
-  await expect(page.getByRole("status")).toHaveText("Changes saved.");
+  await expect(page).toHaveURL(/\/all$/);
   await page.reload();
+  await page
+    .getByRole("link", { name: "Edit: My manual title", exact: true })
+    .click();
   await expect(
     page.getByRole("heading", { name: "My manual title", exact: true }),
   ).toBeVisible();

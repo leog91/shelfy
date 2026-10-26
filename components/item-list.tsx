@@ -20,6 +20,7 @@ import { displayTitle } from "@/lib/items/link-title";
 import { itemLabels, labelHref, LabelOperation } from "@/lib/items/labels";
 import { LabelPicker } from "./label-picker";
 import { ItemLabelAction } from "./item-label-action";
+import { ItemMetadataAction } from "./item-metadata-action";
 
 export function ItemList({
   items,
@@ -332,6 +333,9 @@ export function ItemList({
                       </Link>
                     ))}
                   </div>
+                )}
+                {item.url && !item.deletedAt && (
+                  <ItemMetadataAction item={item} />
                 )}
               </div>
               <span className={`status status-${item.status}`}>

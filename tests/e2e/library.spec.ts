@@ -92,7 +92,13 @@ test(
     await page
       .getByRole("button", { name: "Save changes", exact: true })
       .click();
-    await expect(page.getByRole("status")).toHaveText("Changes saved.");
+    await expect(page).toHaveURL(/\/all$/);
+    await page
+      .getByRole("link", {
+        name: "Edit: React architecture guide",
+        exact: true,
+      })
+      .click();
     await page.getByRole("button", { name: "Mark done", exact: true }).click();
     await page
       .getByRole("navigation")
@@ -157,7 +163,7 @@ test("note, YouTube, product override, archive, portability and confirmed delete
     .selectOption("product");
   await page.getByLabel("Title", { exact: true }).fill("Camera lens");
   await page.getByRole("button", { name: "Save changes", exact: true }).click();
-  await expect(page.getByRole("status")).toHaveText("Changes saved.");
+  await expect(page).toHaveURL(/\/all$/);
   await page
     .getByRole("navigation")
     .getByRole("link", { name: "To watch", exact: true })
