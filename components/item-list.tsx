@@ -9,6 +9,7 @@ import {
   Undo2,
   Pencil,
   Trash2,
+  ShoppingCart,
 } from "lucide-react";
 import { displayType, Item, normalizeTags } from "@/lib/items/model";
 import { errorMessage, useLibrary } from "./library-provider";
@@ -310,8 +311,16 @@ export function ItemList({
                       ? new URL(item.url).hostname.replace(/^www\./, "")
                       : "Plain note"}
                   </span>
-                  <span>
-                    {displayType(item)} · {item.intent}
+                  <span className="item-kind">
+                    {displayType(item)} ·{" "}
+                    {item.intent === "buy" ? (
+                      <span className="shopping-indicator">
+                        <ShoppingCart size={14} aria-hidden="true" />
+                        Shopping
+                      </span>
+                    ) : (
+                      item.intent
+                    )}
                   </span>
                   <time dateTime={item.createdAt}>
                     Added {item.createdAt.slice(0, 10)}

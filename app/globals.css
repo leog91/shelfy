@@ -538,6 +538,16 @@ input[type="checkbox"] {
   color: var(--accent);
   font-size: 12px;
 }
+.item-kind,
+.shopping-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.shopping-indicator {
+  color: light-dark(#865400, #e6b65c);
+  font-weight: 600;
+}
 .tags a {
   position: relative;
   z-index: 1;
@@ -545,12 +555,26 @@ input[type="checkbox"] {
   align-items: center;
   min-height: 44px;
   max-width: 100%;
-  padding: 4px 10px;
-  border: 1px solid var(--accent);
-  border-radius: 4px;
-  background: var(--accent);
-  color: var(--on-accent);
+  padding: 10px 8px;
+  color: light-dark(#fff, #301052);
+  font-weight: 600;
   overflow-wrap: anywhere;
+}
+.tags a::before {
+  /* Keep the compact cut-corner fill inside the full-height link target. */
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 11px 0;
+  background: light-dark(#6236a0, #d3b5ff);
+  clip-path: polygon(
+    4px 0,
+    100% 0,
+    100% calc(100% - 4px),
+    calc(100% - 4px) 100%,
+    0 100%,
+    0 4px
+  );
 }
 .tags a:hover {
   text-decoration: underline;
@@ -839,6 +863,33 @@ textarea::placeholder {
   border-block: 1px solid var(--line);
   margin-block: 20px;
   padding-block: 16px;
+}
+.metadata-suggestions {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  font-size: 12px;
+}
+.metadata-preview-compact {
+  border: 0;
+  margin: 0 0 8px;
+  padding: 0;
+}
+.metadata-preview-compact > p {
+  margin: 0 0 6px;
+}
+.metadata-preview-compact .import-preview {
+  margin-top: 8px;
+  padding-left: 10px;
+}
+.metadata-preview-compact .import-preview > p {
+  margin: 6px 0;
+}
+.metadata-preview-compact button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 .item-metadata-action > summary,
 .item-metadata-action > div {

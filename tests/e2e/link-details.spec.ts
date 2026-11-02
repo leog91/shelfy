@@ -56,42 +56,43 @@ test("review, cancel and save link suggestions directly in the list @mobile", as
   const panel = page.locator(".item-metadata-action:visible");
   await panel.locator("summary").first().click();
   expect(previews).toBe(0);
+  await expect(panel.getByRole("textbox")).toHaveCount(0);
+  await expect(
+    panel.getByRole("button", { name: "Save suggestions" }),
+  ).toHaveCount(0);
   await panel
     .getByRole("button", { name: "Fetch optional link details" })
     .click();
+  await panel.getByRole("button", { name: "Use title", exact: true }).click();
   await panel
-    .getByRole("button", { name: "Use suggested title in draft" })
+    .getByRole("button", { name: "Use description", exact: true })
     .click();
-  await panel
-    .getByRole("button", { name: "Use suggested description in draft" })
-    .click();
-  await panel
-    .getByRole("button", { name: "Add suggested labels to draft" })
-    .click();
+  await panel.getByRole("button", { name: "Add labels", exact: true }).click();
   expect(
     (await (await page.request.get(`/api/items/${item.id}`)).json()).item.title,
   ).toBe("My title");
   await panel.getByRole("button", { name: "Cancel", exact: true }).click();
   await panel.locator("summary").first().click();
-  await expect(panel.getByLabel("Title", { exact: true })).toHaveValue(
-    "My title",
-  );
-  await expect(panel.getByLabel("Description / why I saved this")).toHaveValue(
-    "My context",
+  await expect(
+    panel.getByRole("button", { name: "Save suggestions" }),
+  ).toHaveCount(0);
+  await expect(panel.getByText("Python tutorial", { exact: true })).toHaveCount(
+    0,
   );
   await panel
     .getByRole("button", { name: "Fetch optional link details" })
     .click();
+  await panel.getByRole("button", { name: "Use title", exact: true }).click();
   await panel
-    .getByRole("button", { name: "Use suggested title in draft" })
+    .getByRole("button", { name: "Use description", exact: true })
     .click();
-  await panel
-    .getByRole("button", { name: "Use suggested description in draft" })
-    .click();
-  await panel
-    .getByRole("button", { name: "Add suggested labels to draft" })
-    .click();
-  await panel.getByLabel("Title", { exact: true }).fill("Reviewed title");
+  await panel.getByRole("button", { name: "Add labels", exact: true }).click();
+  await expect(
+    panel.getByRole("button", { name: "Use title", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    panel.getByText("3 suggestions selected. Save to apply."),
+  ).toBeVisible();
   const results = await new AxeBuilder({ page })
     .include(".item-metadata-action")
     .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
@@ -104,20 +105,20 @@ test("review, cancel and save link suggestions directly in the list @mobile", as
     }),
   );
   await panel
-    .getByRole("button", { name: "Save changes", exact: true })
+    .getByRole("button", { name: "Save suggestions", exact: true })
     .click();
   await expect(panel.getByRole("alert")).toBeVisible();
-  await expect(panel.getByLabel("Title", { exact: true })).toHaveValue(
-    "Reviewed title",
-  );
+  await expect(
+    panel.getByRole("button", { name: "Use title", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
   await page.unroute(`**/api/items/${item.id}`);
   await panel
-    .getByRole("button", { name: "Save changes", exact: true })
+    .getByRole("button", { name: "Save suggestions", exact: true })
     .click();
   await expect(panel).not.toHaveAttribute("open");
   await expect(page).toHaveURL(/\/all$/);
   await expect(
-    page.getByRole("link", { name: "Reviewed title", exact: true }),
+    page.getByRole("link", { name: "Python tutorial", exact: true }),
   ).toBeVisible();
   await page.reload();
   await expect(
@@ -125,7 +126,7 @@ test("review, cancel and save link suggestions directly in the list @mobile", as
   ).toBeVisible();
   const saved = (await (await page.request.get(`/api/items/${item.id}`)).json())
     .item;
-  expect(saved.title).toBe("Reviewed title");
+  expect(saved.title).toBe("Python tutorial");
   expect(saved.tags).toEqual(
     expect.arrayContaining(["Keep", "Python", "Tutorials"]),
   );

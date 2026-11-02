@@ -179,12 +179,18 @@ test("browse overlapping labels via sidebar and chips, reload and history @mobil
     name: "View label: Design",
     exact: true,
   });
-  await expect(labelBlock).toHaveCSS("border-radius", "4px");
+  await expect(labelBlock).toHaveCSS("border-radius", "0px");
   await expect(labelBlock).toHaveCSS("min-height", "44px");
-  await expect(labelBlock).not.toHaveCSS(
-    "background-color",
-    "rgba(0, 0, 0, 0)",
-  );
+  expect(
+    await labelBlock.evaluate(
+      (element) => getComputedStyle(element, "::before").backgroundColor,
+    ),
+  ).not.toBe("rgba(0, 0, 0, 0)");
+  expect(
+    await labelBlock.evaluate(
+      (element) => getComputedStyle(element, "::before").clipPath,
+    ),
+  ).toContain("polygon(");
   await page
     .getByRole("link", { name: "View label: Design", exact: true })
     .focus();

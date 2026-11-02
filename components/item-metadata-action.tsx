@@ -1,27 +1,30 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Item, normalizeTags } from "@/lib/items/model";
+import { Item } from "@/lib/items/model";
 import { mergeSuggestedTags } from "@/lib/items/tag-suggestions";
-import { itemLabels } from "@/lib/items/labels";
 import { displayTitle } from "@/lib/items/link-title";
 import { errorMessage, useLibrary } from "./library-provider";
 import { MetadataPreview } from "./metadata-preview";
-import { LabelPicker } from "./label-picker";
 import { useActionFeedback } from "./tooltip";
 
 export function ItemMetadataAction({ item }: { item: Item }) {
-  const { repository, items } = useLibrary();
+  const { repository } = useLibrary();
   const announce = useActionFeedback();
   const details = useRef<HTMLDetailsElement>(null);
   const saving = useRef(false);
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(item.title);
   const [description, setDescription] = useState(item.description ?? "");
-  const [tags, setTags] = useState(item.tags.join(", "));
+  const [tags, setTags] = useState(item.tags);
   const [version, setVersion] = useState(item.updatedAt);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState("");
+  const changed = [
+    title !== item.title,
+    description !== (item.description ?? ""),
+    tags.join("\n") !== item.tags.join("\n"),
+  ].filter(Boolean).length;
 
   function close() {
     if (details.current) {
@@ -39,7 +42,7 @@ export function ItemMetadataAction({ item }: { item: Item }) {
         if (event.currentTarget.open) {
           setTitle(item.title);
           setDescription(item.description ?? "");
-          setTags(item.tags.join(", "));
+          setTags(item.tags);
           setVersion(item.updatedAt);
           setFailure("");
         }
@@ -57,27 +60,23 @@ export function ItemMetadataAction({ item }: { item: Item }) {
             }
           }}
         >
-          <fieldset disabled={busy} className="editor-fields">
+          <fieldset disabled={busy} className="metadata-suggestions">
             <MetadataPreview
+              compact
+              selected={{ title, description, tags }}
               url={item.url!}
               onChoose={(field, value) => {
                 if (field === "title") setTitle(value);
                 else setDescription(value);
               }}
               onChooseTags={(suggestions) =>
-                setTags(
-                  mergeSuggestedTags(
-                    normalizeTags(tags.split(",")),
-                    suggestions,
-                  ).join(", "),
-                )
+                setTags(mergeSuggestedTags(tags, suggestions))
               }
             />
             <form
-              className="editor"
               onSubmit={async (event) => {
                 event.preventDefault();
-                if (saving.current) return;
+                if (saving.current || !changed) return;
                 saving.current = true;
                 setBusy(true);
                 setFailure("");
@@ -87,7 +86,7 @@ export function ItemMetadataAction({ item }: { item: Item }) {
                     {
                       title,
                       description,
-                      tags: normalizeTags(tags.split(",")),
+                      tags,
                     },
                     version,
                   );
@@ -101,34 +100,18 @@ export function ItemMetadataAction({ item }: { item: Item }) {
                 }
               }}
             >
-              <label>
-                Title
-                <input
-                  required
-                  maxLength={500}
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
-              </label>
-              <label>
-                Description / why I saved this
-                <textarea
-                  rows={3}
-                  maxLength={10000}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
-              </label>
-              <LabelPicker
-                value={tags}
-                onChange={setTags}
-                options={itemLabels(items)}
-                disabled={busy}
-              />
+              {changed > 0 && (
+                <p className="muted">
+                  {changed} {changed === 1 ? "suggestion" : "suggestions"}{" "}
+                  selected. Save to apply.
+                </p>
+              )}
               <div className="actions">
-                <button className="primary" type="submit">
-                  Save changes
-                </button>
+                {changed > 0 && (
+                  <button className="primary" type="submit">
+                    Save suggestions
+                  </button>
+                )}
                 <button type="button" onClick={close}>
                   Cancel
                 </button>

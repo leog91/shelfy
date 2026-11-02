@@ -13,10 +13,14 @@ export function MetadataPreview({
   url,
   onChoose,
   onChooseTags,
+  compact = false,
+  selected,
 }: {
   url: string;
   onChoose: (field: "title" | "description", value: string) => void;
   onChooseTags: (tags: string[]) => void;
+  compact?: boolean;
+  selected?: { title: string; description: string; tags: string[] };
 }) {
   const { account } = useLibrary();
   const [preview, setPreview] = useState<z.infer<typeof previewSchema> | null>(
@@ -26,10 +30,13 @@ export function MetadataPreview({
   const [busy, setBusy] = useState(false);
   const tags = preview ? suggestTags({ url, ...preview }) : [];
   return (
-    <section className="metadata-preview">
+    <section
+      className={`metadata-preview${compact ? " metadata-preview-compact" : ""}`}
+    >
       <p className="muted">
-        Optional preview contacts this URL’s public website from the server. It
-        never changes your item automatically.
+        {compact
+          ? "Fetches the public page from the server. Nothing changes until you save."
+          : "Optional preview contacts this URL’s public website from the server. It never changes your item automatically."}
       </p>
       <button
         disabled={busy}
@@ -71,15 +78,20 @@ export function MetadataPreview({
       </button>
       {preview && (
         <div className="import-preview">
-          <p>Suggestions only. Apply a field to your draft, then save.</p>
+          {!compact && (
+            <p>Suggestions only. Apply a field to your draft, then save.</p>
+          )}
           {preview.title && (
             <>
               <p>{preview.title}</p>
               <button
                 type="button"
+                aria-pressed={
+                  selected ? selected.title === preview.title : undefined
+                }
                 onClick={() => onChoose("title", preview.title!)}
               >
-                Use suggested title in draft
+                {compact ? "Use title" : "Use suggested title in draft"}
               </button>
             </>
           )}
@@ -88,20 +100,42 @@ export function MetadataPreview({
               <p>{preview.description}</p>
               <button
                 type="button"
+                aria-pressed={
+                  selected
+                    ? selected.description === preview.description
+                    : undefined
+                }
                 onClick={() => onChoose("description", preview.description!)}
               >
-                Use suggested description in draft
+                {compact
+                  ? "Use description"
+                  : "Use suggested description in draft"}
               </button>
             </>
           )}
           {tags.length > 0 && (
             <>
               <p>Suggested labels: {tags.join(", ")}</p>
-              <p className="muted">
-                Keyword-based suggestions, not AI. Review before saving.
-              </p>
-              <button type="button" onClick={() => onChooseTags(tags)}>
-                Add suggested labels to draft
+              {!compact && (
+                <p className="muted">
+                  Keyword-based suggestions, not AI. Review before saving.
+                </p>
+              )}
+              <button
+                type="button"
+                aria-pressed={
+                  selected
+                    ? tags.every((tag) =>
+                        selected.tags.some(
+                          (existing) =>
+                            existing.toLowerCase() === tag.toLowerCase(),
+                        ),
+                      )
+                    : undefined
+                }
+                onClick={() => onChooseTags(tags)}
+              >
+                {compact ? "Add labels" : "Add suggested labels to draft"}
               </button>
             </>
           )}

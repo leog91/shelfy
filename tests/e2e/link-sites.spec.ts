@@ -1,4 +1,43 @@
 import { expect, test } from "./fixtures";
+import AxeBuilder from "@axe-core/playwright";
+
+test("Shopping indicator follows Buy intent across mixed lists and themes @mobile", async ({
+  page,
+}) => {
+  for (const [text, intent] of [
+    ["https://example.com/lens-review", "buy"],
+    ["https://amazon.com/help", "read"],
+  ]) {
+    const response = await page.request.post("/api/items", {
+      headers: { Origin: "http://localhost:3100" },
+      data: { text, intent },
+    });
+    expect(response.ok()).toBe(true);
+  }
+  for (const path of ["/", "/inbox", "/all"]) {
+    await page.goto(path);
+    const indicator = page.locator(".item-row:visible .shopping-indicator");
+    await expect(indicator).toHaveCount(1);
+    await expect(indicator).toHaveText("Shopping");
+    await expect(indicator.locator("svg")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+    await expect(
+      page.locator(".item-row:visible").filter({ hasText: "amazon.com" }),
+    ).toContainText("link · read");
+  }
+  for (const theme of ["Light", "Dark"]) {
+    await page
+      .getByRole("combobox", { name: "Theme", exact: true })
+      .selectOption({ label: theme });
+    const results = await new AxeBuilder({ page })
+      .include(".item-list")
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+    expect(results.violations).toEqual([]);
+  }
+});
 
 test("legacy products behave as links and Buy alone controls Shopping @mobile", async ({
   page,
@@ -15,7 +54,7 @@ test("legacy products behave as links and Buy alone controls Shopping @mobile", 
   });
   expect(legacy.ok()).toBe(true);
   await page.goto("/all");
-  await expect(page.locator(".item-row:visible")).toContainText("link · buy");
+  await expect(page.locator(".item-row:visible")).toContainText("Shopping");
   await expect(page.locator(".item-row:visible .type-mark")).toHaveText("↗");
   await page.locator(".filter-options > summary").click();
   const typeFilter = page.getByRole("combobox", { name: "Type", exact: true });
@@ -139,7 +178,7 @@ test("shop detection respects intent overrides and site icons stay local", async
   ).toBeVisible();
   await expect(page.locator(".item-row:visible")).toHaveCount(3);
   await expect(
-    page.locator(".item-row:visible").filter({ hasText: "link · buy" }),
+    page.locator(".item-row:visible .shopping-indicator"),
   ).toHaveCount(3);
   expect(externalRequests).toEqual([]);
 });
