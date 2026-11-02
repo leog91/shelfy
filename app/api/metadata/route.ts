@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import { rateLimit } from "@/lib/db/schema";
 import { apiError, json, readJson } from "@/lib/server/item-api";
 import { HttpError } from "@/lib/server/items";
-import { fetchMetadata } from "@/lib/server/metadata";
+import { fetchMetadata, MetadataFetchError } from "@/lib/server/metadata";
 import { getRuntime } from "@/lib/server/runtime";
 
 export async function POST(request: Request) {
@@ -48,10 +48,10 @@ export async function POST(request: Request) {
       );
     try {
       return json(await fetchMetadata(url));
-    } catch {
+    } catch (error) {
       throw new HttpError(
         422,
-        "Could not safely fetch this page. Your saved item is unchanged; edit the title manually.",
+        `${error instanceof MetadataFetchError ? error.message : "Could not safely connect to this website."} You can still edit/save manually; your saved item is unchanged.`,
       );
     }
   } catch (error) {

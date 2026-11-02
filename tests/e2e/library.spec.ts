@@ -134,7 +134,7 @@ test(
   },
 );
 
-test("note, YouTube, product override, archive, portability and confirmed delete", async ({
+test("note, YouTube, shopping link, archive, portability and confirmed delete", async ({
   page,
 }) => {
   await page.goto("/");
@@ -158,9 +158,9 @@ test("note, YouTube, product override, archive, portability and confirmed delete
   await page
     .getByRole("link", { name: "Edit: shop.example", exact: true })
     .click();
-  await page
-    .getByRole("combobox", { name: "Type", exact: true })
-    .selectOption("product");
+  await expect(
+    page.getByRole("combobox", { name: "Type", exact: true }),
+  ).toHaveValue("link");
   await page.getByLabel("Title", { exact: true }).fill("Camera lens");
   await page.getByRole("button", { name: "Save changes", exact: true }).click();
   await expect(page).toHaveURL(/\/all$/);

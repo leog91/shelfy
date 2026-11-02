@@ -8,6 +8,8 @@ import { load } from "cheerio/slim";
 import { safeUrl } from "../items/model";
 
 const MAX_BYTES = 512 * 1024;
+export class MetadataFetchError extends Error {}
+
 export function publicAddress(address: string): boolean {
   try {
     const parsed = ipaddr.process(address);
@@ -18,10 +20,12 @@ export function publicAddress(address: string): boolean {
 }
 export function metadataUrl(value: string): URL {
   if (!safeUrl(value))
-    throw new Error("Only HTTP(S) URLs without credentials are allowed.");
+    throw new MetadataFetchError(
+      "Only HTTP(S) URLs without credentials are allowed.",
+    );
   const url = new URL(value);
   if (url.port && !["80", "443"].includes(url.port))
-    throw new Error("Only standard web ports are allowed.");
+    throw new MetadataFetchError("Only standard web ports are allowed.");
   return url;
 }
 type Address = { address: string; family: number };
@@ -38,7 +42,7 @@ export async function resolvePublic(
     !addresses.length ||
     addresses.some(({ address }) => !publicAddress(address))
   )
-    throw new Error("This URL is not on a public network.");
+    throw new MetadataFetchError("This URL is not on a public network.");
   return addresses[0];
 }
 type PageResponse = {
@@ -104,21 +108,39 @@ export function consumeHtmlResponse(
       });
       return;
     }
-    if (
-      status !== 200 ||
-      !/^(text\/html|application\/xhtml\+xml)(;|$)/.test(contentType)
-    ) {
+    if (status !== 200) {
       response.destroy();
-      reject(new Error("This page did not return HTML."));
+      reject(
+        new MetadataFetchError(
+          `The website refused the preview or is unavailable (HTTP ${status}).`,
+        ),
+      );
+      return;
+    }
+    if (!/^(text\/html|application\/xhtml\+xml)(;|$)/.test(contentType)) {
+      response.destroy();
+      reject(new MetadataFetchError("This page did not return HTML."));
       return;
     }
     if (
-      (response.headers["content-encoding"] &&
-        response.headers["content-encoding"] !== "identity") ||
-      Number(response.headers["content-length"]) > MAX_BYTES
+      response.headers["content-encoding"] &&
+      response.headers["content-encoding"] !== "identity"
     ) {
       response.destroy();
-      reject(new Error("Preview content is too large or compressed."));
+      reject(
+        new MetadataFetchError(
+          "The website returned compressed content that this preview cannot safely read.",
+        ),
+      );
+      return;
+    }
+    if (Number(response.headers["content-length"]) > MAX_BYTES) {
+      response.destroy();
+      reject(
+        new MetadataFetchError(
+          "This page is too large for the 512 KiB preview size limit.",
+        ),
+      );
       return;
     }
     const chunks: Buffer[] = [];
@@ -127,7 +149,11 @@ export function consumeHtmlResponse(
       size += chunk.length;
       if (size > MAX_BYTES) {
         response.destroy();
-        reject(new Error("Preview content exceeds the size limit."));
+        reject(
+          new MetadataFetchError(
+            "This page is too large for the 512 KiB preview size limit.",
+          ),
+        );
       } else chunks.push(chunk);
     });
     response.on("end", () =>
@@ -166,7 +192,10 @@ export async function fetchMetadata(
   const timeout = new Promise<never>((_, reject) =>
     signal.addEventListener(
       "abort",
-      () => reject(new Error("Preview request timed out.")),
+      () =>
+        reject(
+          new MetadataFetchError("Preview request timed out after 8 seconds."),
+        ),
       { once: true },
     ),
   );
@@ -179,7 +208,7 @@ export async function fetchMetadata(
       const response = await dependencies.fetch(url, address, signal);
       if (response.status >= 300 && response.status < 400) {
         if (!response.location || redirects === 3)
-          throw new Error("Too many or invalid redirects.");
+          throw new MetadataFetchError("Too many or invalid redirects.");
         url = metadataUrl(new URL(response.location, url).href);
       } else return extractMetadata(response.body);
     }

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { detectLinkSite } from "./link-sites";
 import { linkTitle, displayTitle } from "./link-title";
 
-export const types = ["link", "note", "video", "product"] as const;
+export const types = ["link", "note", "video"] as const;
 export const intents = [
   "read",
   "watch",
@@ -29,7 +29,8 @@ export function safeUrl(value: string): boolean {
 export const itemSchema = z
   .object({
     id: z.uuid(),
-    type: z.enum(types),
+    // Retain legacy Product values for saved data and portable imports/exports.
+    type: z.enum([...types, "product"]),
     intent: z.enum(intents),
     status: z.enum(statuses),
     title: z.string().trim().min(1).max(500),
@@ -56,7 +57,7 @@ export const itemSchema = z
     if (item.type !== "note" && !item.url)
       ctx.addIssue({
         code: "custom",
-        message: "Links, videos and products need a URL.",
+        message: "Links and videos need a URL.",
         path: ["url"],
       });
     if (item.type === "note" && !item.content?.trim())
@@ -72,6 +73,10 @@ export const itemSchema = z
       });
   });
 export type Item = z.infer<typeof itemSchema>;
+export function displayType(item: Pick<Item, "type">): (typeof types)[number] {
+  return item.type === "product" ? "link" : item.type;
+}
+
 export type ItemPatch = Partial<
   Omit<Item, "id" | "createdAt" | "updatedAt" | "completedAt" | "deletedAt">
 >;
@@ -199,7 +204,7 @@ export function selectItems(
             view === "deleted" ||
             item.status !== "archived"),
     )
-    .filter((item) => !filters.type || item.type === filters.type)
+    .filter((item) => !filters.type || displayType(item) === filters.type)
     .filter((item) => !filters.intent || item.intent === filters.intent)
     .filter((item) => !filters.tag || item.tags.includes(filters.tag))
     .filter((item) => !filters.source || item.source === filters.source)

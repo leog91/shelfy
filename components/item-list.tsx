@@ -10,7 +10,7 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
-import { Item, normalizeTags } from "@/lib/items/model";
+import { displayType, Item, normalizeTags } from "@/lib/items/model";
 import { errorMessage, useLibrary } from "./library-provider";
 import { useState } from "react";
 import { Tooltip, useActionFeedback } from "./tooltip";
@@ -270,11 +270,14 @@ export function ItemList({
                   />
                 </label>
               )}
-              <div className={`type-mark type-${item.type}`} aria-hidden="true">
+              <div
+                className={`type-mark type-${displayType(item)}`}
+                aria-hidden="true"
+              >
                 {site ? (
                   <SiteIcon site={site} />
                 ) : (
-                  { link: "↗", note: "≡", video: "▷", product: "◇" }[item.type]
+                  { link: "↗", note: "≡", video: "▷" }[displayType(item)]
                 )}
               </div>
               <div className="item-info">
@@ -308,7 +311,7 @@ export function ItemList({
                       : "Plain note"}
                   </span>
                   <span>
-                    {item.type} · {item.intent}
+                    {displayType(item)} · {item.intent}
                   </span>
                   <time dateTime={item.createdAt}>
                     Added {item.createdAt.slice(0, 10)}

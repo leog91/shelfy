@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   createItem,
+  displayType,
   envelopeSchema,
   inView,
   itemSchema,
@@ -44,7 +45,7 @@ describe("capture", () => {
       content,
     });
   });
-  it("does not guess product type from shopping intent", () => {
+  it("uses link type for shopping intent", () => {
     expect(createItem("https://shop.example/lens", "buy")).toMatchObject({
       type: "link",
       intent: "buy",
@@ -114,6 +115,21 @@ describe("lifecycle and validation", () => {
 });
 
 describe("selectors", () => {
+  it("displays and filters legacy products as links without rewriting them or changing intent", () => {
+    const legacy = itemSchema.parse({
+      ...createItem("https://example.com/lens", "buy"),
+      type: "product",
+    });
+    expect(displayType(legacy)).toBe("link");
+    expect(selectItems([legacy], "all", { type: "link" })).toEqual([legacy]);
+    expect(selectItems([legacy], "all", { type: "video" })).toEqual([]);
+    expect(inView(legacy, "shopping")).toBe(true);
+    expect(
+      envelopeSchema.parse({ version: 3, items: [legacy] }).items[0].type,
+    ).toBe("product");
+    expect(updateItem(legacy, { title: "My lens" }).type).toBe("product");
+    expect(inView({ ...legacy, intent: "read" }, "shopping")).toBe(false);
+  });
   it("keeps archived and deleted views separate and excludes deleted items everywhere else", () => {
     const active = createItem("Active");
     const archived = updateItem(createItem("Archived"), { status: "archived" });

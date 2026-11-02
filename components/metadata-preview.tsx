@@ -47,12 +47,18 @@ export function MetadataPreview({
               },
               body: JSON.stringify({ url }),
             });
-            if (!response.ok)
+            if (!response.ok) {
+              const failure = z
+                .object({ error: z.string().max(1000) })
+                .safeParse(await response.json().catch(() => null));
               throw new Error(
-                response.status === 429
-                  ? "Preview limit reached. Try again in a minute."
-                  : "Could not safely fetch this page. You can still edit/save manually.",
+                failure.success
+                  ? failure.data.error
+                  : response.status === 429
+                    ? "Preview limit reached. Try again in a minute."
+                    : "Could not safely fetch this page. You can still edit/save manually.",
               );
+            }
             setPreview(previewSchema.parse(await response.json()));
           } catch (e) {
             setFailure(errorMessage(e));

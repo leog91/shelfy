@@ -175,6 +175,16 @@ test("browse overlapping labels via sidebar and chips, reload and history @mobil
   ).toHaveAttribute("aria-current", "page");
   await page.reload();
   await expect(page.locator(".item-row:visible")).toHaveCount(1);
+  const labelBlock = page.getByRole("link", {
+    name: "View label: Design",
+    exact: true,
+  });
+  await expect(labelBlock).toHaveCSS("border-radius", "4px");
+  await expect(labelBlock).toHaveCSS("min-height", "44px");
+  await expect(labelBlock).not.toHaveCSS(
+    "background-color",
+    "rgba(0, 0, 0, 0)",
+  );
   await page
     .getByRole("link", { name: "View label: Design", exact: true })
     .focus();

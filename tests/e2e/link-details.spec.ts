@@ -1,6 +1,35 @@
 import { expect, test } from "./fixtures";
 import AxeBuilder from "@axe-core/playwright";
 
+test("preview failures explain the limit and preserve authored drafts @mobile", async ({
+  page,
+}) => {
+  await page.route("**/api/metadata", (route) =>
+    route.fulfill({
+      status: 422,
+      json: {
+        error:
+          "This page is too large for the 512 KiB preview size limit. You can still edit/save manually; your saved item is unchanged.",
+      },
+    }),
+  );
+  await page.goto("/");
+  await page.getByLabel("URL or note").fill("https://viltrox.com");
+  await page.locator(".capture-details > summary").click();
+  await page.getByLabel("Title", { exact: true }).fill("My lens research");
+  await page
+    .getByRole("button", { name: "Fetch optional link details" })
+    .click();
+  await expect(
+    page.locator(".metadata-preview").getByRole("alert"),
+  ).toContainText("512 KiB preview size limit");
+  await expect(page.getByLabel("Title", { exact: true })).toHaveValue(
+    "My lens research",
+  );
+  await page.getByRole("button", { name: "Save to Inbox" }).click();
+  await expect(page.getByRole("status")).toContainText("Saved");
+});
+
 test("review, cancel and save link suggestions directly in the list @mobile", async ({
   page,
 }) => {

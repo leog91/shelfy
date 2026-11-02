@@ -188,7 +188,14 @@ function ItemEditor({ item }: { item: Item }) {
               Type
               <select name="type" defaultValue={item.type}>
                 {types.map((s) => (
-                  <option key={s}>{s}</option>
+                  <option
+                    key={s}
+                    value={
+                      s === "link" && item.type === "product" ? "product" : s
+                    }
+                  >
+                    {s}
+                  </option>
                 ))}
               </select>
             </label>

@@ -546,9 +546,10 @@ input[type="checkbox"] {
   min-height: 44px;
   max-width: 100%;
   padding: 4px 10px;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: var(--paper);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--accent);
+  color: var(--on-accent);
   overflow-wrap: anywhere;
 }
 .tags a:hover {

@@ -3,6 +3,7 @@ import {
   consumeHtmlResponse,
   extractMetadata,
   fetchMetadata,
+  MetadataFetchError,
   metadataUrl,
   publicAddress,
   resolvePublic,
@@ -41,6 +42,20 @@ describe("safe optional metadata", () => {
     redirect.headers.location = "/next";
     expect((await consumeHtmlResponse(redirect)).body).toBe("");
     expect(redirect.destroyed).toBe(true);
+  });
+  it("distinguishes website refusal from non-HTML responses without reading their bodies", async () => {
+    const denied = new IncomingMessage(new Socket());
+    denied.statusCode = 403;
+    denied.headers = { "content-type": "text/html" };
+    await expect(consumeHtmlResponse(denied)).rejects.toThrow("HTTP 403");
+    expect(denied.destroyed).toBe(true);
+    const nonHtml = new IncomingMessage(new Socket());
+    nonHtml.statusCode = 200;
+    nonHtml.headers = { "content-type": "application/json" };
+    await expect(consumeHtmlResponse(nonHtml)).rejects.toBeInstanceOf(
+      MetadataFetchError,
+    );
+    expect(nonHtml.destroyed).toBe(true);
   });
   it("times out DNS rather than allowing an unbounded resolver", async () => {
     const resolve = () => new Promise<never>(() => {});
